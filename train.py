@@ -42,7 +42,7 @@ X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 
 # Load images and masks with an custom data generator - for performance reason
 patch_array = load_img_as_array(X_train[0])
 
-import pdb 
+import pdb
 pdb.set_trace()
 
 patch_xy = (patch_array.shape[0], patch_array.shape[1])

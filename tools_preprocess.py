@@ -70,7 +70,6 @@ def savePatchesTrain(patches, output_folder):
     mask_out = os.path.join(output_folder, "mask") 
     img_out = os.path.join(output_folder, "img") 
     
-
     mask_dict = {k: v for k, v in patches.items() if k.startswith("3")}
     for k in mask_dict.keys():
         mask_name = k
@@ -152,6 +151,7 @@ def calculateIndizesSen12(bands_patches):
     #last_key = list(bands_patches.keys())[-1]
 
     cr_list, ndvi_list, ndwi_list = [], [], []
+    cr_list_norm, ndvi_list_norm, ndwi_list_norm = [], [], []
 
     for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
 
@@ -168,9 +168,13 @@ def calculateIndizesSen12(bands_patches):
         ndwi = np.nan_to_num((nir-swir1)/(nir+swir1))
         ndwi_list.append(ndwi)
 
-    bands_patches["CR"] = cr_list
-    bands_patches["NDVI"] = ndvi_list
-    bands_patches["NDWI"] = ndwi_list
+    [cr_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in cr_list] 
+    [ndvi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndvi_list]
+    [ndwi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndwi_list]    
+
+    bands_patches["CR"] = cr_list_norm
+    bands_patches["NDVI"] = ndvi_list_norm
+    bands_patches["NDWI"] = ndwi_list_norm
 
     # bands_patches = OrderedDict(bands_patches)
     # bands_patches.move_to_end(last_key)
@@ -180,6 +184,7 @@ def calculateIndizesSen12(bands_patches):
 def calculateIndizesSen2(bands_patches):
 
     ndvi_list, ndwi_list = [], []
+    ndvi_list_norm, ndwi_list_norm = [], []
 
     for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
 
@@ -192,8 +197,11 @@ def calculateIndizesSen2(bands_patches):
         ndwi = np.nan_to_num((nir-swir1)/(nir+swir1))
         ndwi_list.append(ndwi)
 
-    bands_patches["NDVI"] = ndvi_list
-    bands_patches["NDWI"] = ndwi_list
+    [ndvi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndvi_list]
+    [ndwi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndwi_list]   
+
+    bands_patches["NDVI"] = ndvi_list_norm
+    bands_patches["NDWI"] = ndwi_list_norm
 
     return bands_patches
 
