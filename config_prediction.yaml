@@ -1,12 +1,14 @@
 version: 1.1
 
 data_source:
-   Sentinel1: "/codede/Sentinel-1/SAR/CARD-BS-MC/2021/05/01/S1_CARD-BS-MC_202105_32UNC/"
-   Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/05/01/S2_L3_WASP_202105_32UNC/"
+   Sentinel1: "/codede/Sentinel-1/SAR/CARD-BS-MC/2021/05/01/S1_CARD-BS-MC_202105_32UPV/"
+   Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/07/01/S2_L3_WASP_202107_32UPV/"
+
+solar:
+  path: "/home/hoehn/data/input/solarParks_predict.shp"
 
 model:
-  Unet_Sen1_Sen2: "/home/hoehn/code/Adam_binary_crossentropy_50"
-  Unet_Sen2: ""
+  path: "/home/hoehn/code/Sen12indizes_Adambinary_crossentropy150_20221107"
   patch_size: 128 
 
 output_folder: "/home/hoehn/data/prediction/"

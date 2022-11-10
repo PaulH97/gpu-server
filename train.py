@@ -27,10 +27,10 @@ if os.path.exists("config_training.yaml"):
         output_folder = data["output_folder"]
 
 # Use patches as trainings data for model
-img_list = glob("{}/Sen12_indizes_crops/img/*.tif".format(output_folder))
-mask_list = glob("{}/Sen12_indizes_crops/mask/*.tif".format(output_folder))
+img_list = glob("{}/Sen2_indizes_crops/img/*.tif".format(output_folder))
+mask_list = glob("{}/Sen2_indizes_crops/mask/*.tif".format(output_folder))
 
-model_name = "/home/hoehn/code/Sen12_indizes" + optimizer + loss_function + str(epochs) + "_" + datetime.now().strftime("%Y%m%d")
+model_name = "/home/hoehn/code/Sen2_indizes" + optimizer + loss_function + str(epochs) + "_" + datetime.now().strftime("%Y%m%d")
 
 img_list.sort()
 mask_list.sort()
