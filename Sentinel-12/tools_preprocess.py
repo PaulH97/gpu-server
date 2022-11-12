@@ -37,6 +37,7 @@ def rasterizeShapefile(raster_path, vector_path, output_folder, tile_name, col_n
     transform = raster.transform
 
     #tile_name = '_'.join(tile_name.split("_")[-2:])
+    output_folder = os.path.join(output_folder, "masks")
     r_out = os.path.join(output_folder, os.path.basename(vector_path).split(".")[0] + "_" + tile_name +".tif")
 
     with rasterio.open(r_out, 'w+', driver='GTiff',
