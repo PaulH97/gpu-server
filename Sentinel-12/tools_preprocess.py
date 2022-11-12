@@ -11,6 +11,8 @@ from matplotlib import pyplot as plt
 import requests
 import geopandas as gpd
 
+np.seterr(divide='ignore', invalid='ignore')
+
 def load_img_as_array(path):
     # read img as array 
     img_array = rasterio.open(path).read()
@@ -123,7 +125,7 @@ def savePatchesTrain(patches, output_folder):
 
 def savePatchesPredict(patches, output_folder):
 
-    img_out = os.path.join(output_folder, "Crops", "img") 
+    img_out = os.path.join(output_folder, "full_img") 
     
     if not os.path.exists(img_out):
         os.makedirs(img_out)
@@ -145,7 +147,7 @@ def savePatchesPredict(patches, output_folder):
                 final.write(patches[band_name][idx][:,:,0],band_nr+1)
             final.close()
 
-    return img_out
+    return 
 
 def calculateIndizesSen12(bands_patches):
 
@@ -177,9 +179,10 @@ def calculateIndizesSen12(bands_patches):
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
 
-    # bands_patches = OrderedDict(bands_patches)
-    # bands_patches.move_to_end(last_key)
-    #     
+    print("Cross Ratio")
+    print("Calculated NDVI")
+    print("Calculated NDWI")
+   
     return bands_patches
 
 def calculateIndizesSen2(bands_patches):
@@ -203,6 +206,9 @@ def calculateIndizesSen2(bands_patches):
 
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
+
+    print("Calculated NDVI")
+    print("Calculated NDWI")
 
     return bands_patches
 

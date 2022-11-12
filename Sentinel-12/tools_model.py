@@ -48,7 +48,7 @@ def predictPatches(model, predict_datagen, raster_path, output_folder):
 
     transform = raster.transform
     crs = raster.crs
-    name = os.path.basename(raster_path).split(".")[0]
+    name = os.path.basename(raster_path).split("_")[3]
     predict_out = os.path.join(output_folder, name + "_prediction.tif")
 
     final = rasterio.open(predict_out, mode='w', driver='Gtiff',

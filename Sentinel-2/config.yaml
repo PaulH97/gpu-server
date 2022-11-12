@@ -27,6 +27,6 @@ prediction:
     Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/07/01/S2_L3_WASP_202107_32UPV"
     solar_path: "/home/hoehn/data/input/solarParks_predict.shp"  
   model:
-    path: "/home/hoehn/data/output/Sentinel-2/models/Sen2_Adambinary_crossentropy150_20221102"
+    path: "/home/hoehn/data/output/Sentinel-2/models/Ad_bc_50_idx"
 
 output_folder: "/home/hoehn/data/output/Sentinel-2"

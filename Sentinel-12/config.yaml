@@ -16,7 +16,7 @@ shapefiles:
   AOI: "/home/hoehn/data/input/aoi_scenes.shp"
   Solar: "/home/hoehn/data/input/SolarParks.shp"
 
-model:
+model_parameter:
   patch_size: 128
   optimizer: Adam
   loss_function: binary_crossentropy
@@ -26,10 +26,10 @@ indizes: True
 
 prediction:
   data: 
-    Sentinel1: "/codede/Sentinel-1/SAR/CARD-BS-MC/2021/07/01/S1_CARD-BS-MC_202107_32UPV/"
-    Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/07/01/S2_L3_WASP_202107_32UPV/"
+    Sentinel1: "/codede/Sentinel-1/SAR/CARD-BS-MC/2021/07/01/S1_CARD-BS-MC_202107_32UPV"
+    Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/07/01/S2_L3_WASP_202107_32UPV"
     solar_path: "/home/hoehn/data/input/solarParks_predict.shp" 
   model:
-      path: "/home/hoehn/data/output/Sentinel-12/models/Sen12_Adambinary_crossentropy150_20221102"
+      path: ""
 
 output_folder: "/home/hoehn/data/output/Sentinel-12"

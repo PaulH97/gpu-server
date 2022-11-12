@@ -30,23 +30,25 @@ b_count = patch_array.shape[-1]
 
 predict_datagen = CustomImageGeneratorPrediction(patches_path, patch_xy, b_count)
 
-prediction = predictPatches(model, predict_datagen, example_raster, output_folder)
+prediction = predictPatches(model, predict_datagen, example_raster, os.path.join(output_folder, "prediction"))
 
-# Get model metrics on test data
-from sklearn.metrics import jaccard_score, f1_score, accuracy_score
+# # Get model metrics on test data
+# from sklearn.metrics import jaccard_score, f1_score, accuracy_score
 
-tile_pred = sentinel2.split("_")[-1] # 32UPV
-mask_path = glob("/home/hoehn/data/output/Sentinel-2/masks/*{}.tif".format(tile_pred))
-mask = load_img_as_array(mask_path)
-mask = mask[:10880,:10880,:]
+# tile_pred = sentinel2.split("_")[-1] # 32UPV
+# mask_path = glob("/home/hoehn/data/output/Sentinel-2/masks/*{}.tif".format(tile_pred))[0]
+# mask = load_img_as_array(mask_path)
+# mask = mask[:10880,:10880,:]
 
-flat_truth = np.concatenate(mask).flatten()
-flat_pred = np.concatenate(prediction).flatten()
+# flat_truth = np.concatenate(mask).flatten()
+# flat_pred = np.concatenate(prediction).flatten()
 
-jaccard = jaccard_score(flat_truth, flat_pred)
-f1 = f1_score(flat_truth, flat_pred,)
-acc = accuracy_score(flat_truth, flat_pred)
+# jaccard = jaccard_score(flat_truth, flat_pred)
+# f1 = f1_score(flat_truth, flat_pred,)
+# acc = accuracy_score(flat_truth, flat_pred)
 
-print("Jaccard(%): ", jaccard*100)
-print("F1-Score(%): ", f1*100)
-print("Accuracy(%): ", acc*100)
+# print("Jaccard(%): ", jaccard*100)
+# print("F1-Score(%): ", f1*100)
+# print("Accuracy(%): ", acc*100)
+
+
