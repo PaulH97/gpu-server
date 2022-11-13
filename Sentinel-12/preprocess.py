@@ -28,6 +28,8 @@ if os.path.exists("config.yaml"):
         sentinel12_pred = data['prediction']["data"]['Sentinel2']
         solar_path_pred = data['prediction']["data"]["solar_path"]
 
+        seed = data["seed"]
+
 crop_folder = os.path.join(output_folder, "crops")
 
 if indizes:
@@ -84,7 +86,7 @@ for idx1, tile in enumerate(Sen12_tiles):
 
     if idx1 == len(Sen12_tiles)-1:
         # get tile name and path for each band
-        tile_name = tile.split("_")[-2:]
+        tile_name = '_'.join(tile.split("_")[-2:])
         sen_path = glob(f"{tile}/*.tif") 
         sen_path.sort() # B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A
     else:
@@ -96,7 +98,7 @@ for idx1, tile in enumerate(Sen12_tiles):
     print("Start with tile: ", tile_name)
 
     # Create mask as raster for each sentinel tile
-    mask_path = rasterizeShapefile(sen_path[2], solar_path, output_folder, tile_name, col_name="SolarPark")
+    mask_path = rasterizeShapefile(sen_path[4], solar_path, output_folder, tile_name, col_name="SolarPark")
 
     # all paths in one list
     sen_mask = sen_path + [mask_path] # [VH VV B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A MASK]
@@ -156,15 +158,16 @@ for idx1, tile in enumerate(Sen12_tiles):
         
         bands_patches[band_name] = patchifyRasterAsArray(r_array_norm, patch_size)
     
-    # Calculate important indizes
-    if indizes:
-        bands_patches = calculateIndizesSen12(bands_patches)
-
     # Save patches in folder as raster file
-    if idx1 != len(Sen12_tiles)-1: 
-        images_path, masks_path = savePatchesTrain(bands_patches, crop_folder)
+    if idx1 != len(Sen12_tiles)-1:     
+        # Calculate important indizes
+        if indizes:
+            bands_patches = calculateIndizesSen12(bands_patches)
+        images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed)
     else:
-        images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder)
+        bands_patches = calculateIndizesSen2(bands_patches)
+        images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed)
+        
         print("Saved crops for prediciton in:{}".format(images_path_pd, masks_path_pd))
         mask_name = os.path.basename(tile_name).split("_")[1]
         del bands_patches[mask_name]
@@ -176,7 +179,7 @@ for idx1, tile in enumerate(Sen12_tiles):
     del raster
 
 # Data augmentation of saved patches
-imageAugmentation(images_path, masks_path)
+imageAugmentation(images_path, masks_path, seed)
 print("---------------------")
 
 

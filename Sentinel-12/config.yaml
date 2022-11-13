@@ -1,3 +1,5 @@
+seed: 42
+
 satellite:
   Sentinel1:
     name: Sentinel1 
@@ -20,7 +22,7 @@ model_parameter:
   patch_size: 128
   optimizer: Adam
   loss_function: binary_crossentropy
-  epochs: 150
+  epochs: 50
 
 indizes: True
 

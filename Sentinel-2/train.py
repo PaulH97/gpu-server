@@ -23,8 +23,9 @@ if os.path.exists("config.yaml"):
         loss_function = data['model_parameter']['loss_function']
         epochs = data['model_parameter']['epochs']
         indizes = data["indizes"]
-
         output_folder = data["output_folder"]
+
+        seed = data["seed"]
 
 # Use patches as trainings data for model
 parameter = {"Adam": "Ad", "binary_crossentropy": "bc"}
@@ -44,8 +45,8 @@ img_list.sort()
 mask_list.sort()
 
 # Split training data
-X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.20, shuffle=True, random_state = 42)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.10, shuffle=True, random_state = 42)
+X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.20, shuffle=True, random_state = seed)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.10, shuffle=True, random_state = seed)
 
 # Load images and masks with an custom data generator - for performance reason
 patch_array = load_img_as_array(X_train[0])

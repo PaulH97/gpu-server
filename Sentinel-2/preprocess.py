@@ -22,10 +22,11 @@ if os.path.exists("config.yaml"):
         patch_size = data['model_parameter']['patch_size']
         output_folder = data["output_folder"]
         indizes = data["indizes"]
-
         # data for prediction
         sentinel2_pred = data['prediction']["data"]['Sentinel2']
         solar_path_pred = data['prediction']["data"]["solar_path"]
+
+        seed = data["seed"]
 
 crop_folder = os.path.join(output_folder, "crops")
 if indizes:
@@ -150,9 +151,9 @@ for idx1,tile in enumerate(Sen2_tiles):
 
     # Save patches in folder as raster file
     if idx1 != len(Sen2_tiles)-1: 
-        images_path, masks_path = savePatchesTrain(bands_patches, crop_folder)
+        images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed)
     else:
-        images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder)
+        images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed)
         print("Saved crops for prediciton in:{}".format(images_path_pd, masks_path_pd))
         mask_name = os.path.basename(tile_name).split("_")[1]
         del bands_patches[mask_name]
@@ -163,8 +164,8 @@ for idx1,tile in enumerate(Sen2_tiles):
     del r_array
     del raster
 
-# Data augmentation of saved patches
-imageAugmentation(images_path, masks_path)
-print("---------------------")
+# # Data augmentation of saved patches
+# imageAugmentation(images_path, masks_path, seed)
+# print("---------------------")
 
 

@@ -68,7 +68,7 @@ def patchifyRasterAsArray(array, patch_size):
     
     return result
 
-def savePatchesTrain(patches, output_folder):
+def savePatchesTrain(patches, output_folder, seed):
 
     mask_out = os.path.join(output_folder, "mask") 
     img_out = os.path.join(output_folder, "img") 
@@ -87,7 +87,9 @@ def savePatchesTrain(patches, output_folder):
 
     for idx, mask in enumerate(patches[mask_name]):
 
-        if  np.count_nonzero(mask == 1):
+        mask_flat = np.concatenate(mask).flatten()
+
+        if 1 in mask_flat:
             
             tiff.imwrite(os.path.join(mask_out, f'{mask_name}_mask_{idx}_pv.tif'), mask)
 
@@ -102,9 +104,10 @@ def savePatchesTrain(patches, output_folder):
             countPV += 1
         else:
             idx_noPV.append(idx)
-           
-    random.seed(42)
+    
+    random.seed(seed)
     random_idx = random.sample(idx_noPV, countPV)
+    print("First 5 values of seed nopv: ", random_idx[:6])
 
     for idx, mask in enumerate(patches[mask_name]):
 
@@ -211,7 +214,7 @@ def calculateIndizesSen2(bands_patches):
 
     return bands_patches
 
-def imageAugmentation(images_path, masks_path):
+def imageAugmentation(images_path, masks_path, seed):
 
     def rotation90(image, seed):
         random.seed(seed)
@@ -264,7 +267,6 @@ def imageAugmentation(images_path, masks_path):
         
         for idx, transformation in enumerate(list(transformations)): 
 
-            seed = random.randint(1,100)  #Generate seed to supply transformation functions. 
             transformed_image = transformations[transformation](original_image, seed)
             transformed_mask = transformations[transformation](original_mask, seed)
 
