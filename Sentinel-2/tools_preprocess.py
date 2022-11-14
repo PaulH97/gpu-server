@@ -107,8 +107,7 @@ def savePatchesTrain(patches, output_folder, seed):
     
     random.seed(seed)
     random_idx = random.sample(idx_noPV, countPV)
-    print("First 5 values of seed nopv: ", random_idx[:6])
-
+    
     for idx, mask in enumerate(patches[mask_name]):
 
         if idx in random_idx:

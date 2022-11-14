@@ -37,7 +37,7 @@ if indizes:
 else:
     img_list = glob("{}/crops/no_idx/img/*.tif".format(output_folder))
     mask_list = glob("{}/crops/no_idx/mask/*.tif".format(output_folder))
-    model_name = parameter[optimizer] + "_" + parameter[loss_function] + "_" + str(epochs) # Ad_bc_100
+    model_name = parameter[optimizer] + "_" + parameter[loss_function] + "_" + str(epochs) + "no_idx" # Ad_bc_100
 
 model_path = os.path.join(output_folder, "models", model_name)
 

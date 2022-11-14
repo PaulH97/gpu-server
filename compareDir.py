@@ -12,18 +12,5 @@ for i in dir1:
     else:
         equal.append(i)
 
-count = 0 
-missing2 = []
-
-for i in missing:
-    if "nopv" in i:
-        count += 1
-    else:
-        missing2.append(i)
-
-print(len(equal))
-print(len(missing))
-[print(i) for i in missing2]
-
-import pdb
-pdb.set_trace()
+print("Found {} equal files in both dirs".format(len(equal)))
+print("Found {} missing files in both dirs".format(len(missing)))

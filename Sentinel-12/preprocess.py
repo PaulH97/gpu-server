@@ -167,8 +167,8 @@ for idx1, tile in enumerate(Sen12_tiles):
     else:
         bands_patches = calculateIndizesSen2(bands_patches)
         images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed)
-        
-        print("Saved crops for prediciton in:{}".format(images_path_pd, masks_path_pd))
+        print("Saved crops for prediciton in:{}".format(images_path_pd))
+        print("Saved crops for prediciton in:{}".format(masks_path_pd))
         mask_name = os.path.basename(tile_name).split("_")[1]
         del bands_patches[mask_name]
         savePatchesPredict(bands_patches, pred_cfolder)
@@ -179,6 +179,8 @@ for idx1, tile in enumerate(Sen12_tiles):
     del raster
 
 # Data augmentation of saved patches
+print(images_path)
+print(masks_path)
 imageAugmentation(images_path, masks_path, seed)
 print("---------------------")
 
