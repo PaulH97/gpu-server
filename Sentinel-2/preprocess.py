@@ -112,9 +112,9 @@ for idx1,tile in enumerate(Sen2_tiles):
     
         if idx2 != (len(sen_mask)-1):
             
-            q25, q75 = np.percentile(r_array, [25, 75])
-            bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
-            bins = round((r_array.max() - r_array.min()) / bin_width)   
+            # q25, q75 = np.percentile(r_array, [25, 75])
+            # bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
+            # bins = round((r_array.max() - r_array.min()) / bin_width)   
         
             a,b = 0,1
             c,d = np.percentile(r_array, [0.1, 99.9])
