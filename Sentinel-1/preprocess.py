@@ -4,7 +4,6 @@ import yaml
 import numpy as np
 from tools_preprocess import *
 import rasterio
-from matplotlib import pyplot as plt
 import shutil
 import warnings
 
@@ -23,10 +22,12 @@ if os.path.exists("config.yaml"):
         output_folder = data["output_folder"]
         indizes = data["indizes"]
         # data for prediction
-        sentinel2_pred = data['prediction']["data"]['Sentinel2']
+        sentinel1_pred = data['prediction']["data"]['Sentinel1']
         solar_path_pred = data['prediction']["data"]["solar_path"]
 
         seed = data["seed"]
+
+file = open("/home/hoehn/data/output/Sentinel-1/sentinel1_tiles.txt", "r")
 
 crop_folder = os.path.join(output_folder, "crops")
 if indizes:
@@ -65,32 +66,31 @@ else:
     os.mkdir(os.path.join(pred_cfolder, "img"))
     os.mkdir(os.path.join(pred_cfolder, "mask"))
     
-file = open("/home/hoehn/data/output/Sentinel-2/sentinel2_tiles.txt", "r")
-Sen2_tiles = file.readlines()
+Sen1_tiles = file.readlines()
 
-Sen2_tiles = Sen2_tiles + [sentinel2_pred]
+Sen1_tiles = Sen1_tiles + [sentinel1_pred] 
 
-[print(tile.strip()) for tile in Sen2_tiles]
+[print(tile.strip()) for tile in Sen1_tiles]
 
 # Get input data = Sentinel 2
-for idx1,tile in enumerate(Sen2_tiles):
+for idx1,tile in enumerate(Sen1_tiles):
 
     # remove \n from file path
     tile = tile.strip()
     # get tile name and path for each band
     tile_name = '_'.join(tile.split("_")[-2:])
     sen_path = glob(f"{tile}/*.tif") 
-    sen_path.sort() # B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A
+    sen_path.sort() # VH VV 
 
     print("Start with tile: ", tile_name)
 
     # Create mask as raster for each sentinel tile
-    mask_path = rasterizeShapefile(sen_path[2], solar_path, output_folder, tile_name, col_name="SolarPark")
+    mask_path = rasterizeShapefile(sen_path[0], solar_path, output_folder, tile_name, col_name="SolarPark")
 
     # all paths in one list
-    sen_mask = sen_path + [mask_path] # [B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A MASK]
+    sen_mask = sen_path + [mask_path] # [VH VV MASK]
 
-    bands_patches = {} # {"B11": [[patch1], [patch2] ..., "B11": [...], ..., "SolarParks": [...]}
+    bands_patches = {} # {"VH": [[patch1], [patch2] ..., "VV": [...], ..., "SolarParks": [...]}
     
     # Patchify all input data -> create smaller patches
     for idx2, band in enumerate(sen_mask):
@@ -147,10 +147,10 @@ for idx1,tile in enumerate(Sen2_tiles):
     
     # Calculate important indizes
     if indizes:
-        bands_patches = calculateIndizesSen2(bands_patches)
+        bands_patches = calculateIndizesSen1(bands_patches)
 
     # Save patches in folder as raster file
-    if idx1 != len(Sen2_tiles)-1: 
+    if idx1 != len(Sen1_tiles)-1: 
         images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed)
     else:
         images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed)

@@ -2,9 +2,9 @@ seed: 42
 
 satellite:
   Sentinel1:
-    name: Sentinel2
+    name: Sentinel1 
     processing_level: LEVEL3
-    product_type: L3-WASP
+    product_type: CARD-BS-MC 
   search_criteria:
     start_date: "2021-06-01T00:00:00Z"
     end_date: "2021-07-31T23:59:59Z"
@@ -20,7 +20,7 @@ model_parameter:
   loss_function: binary_crossentropy
   epochs: 50
 
-indizes: False
+indizes: True
 
 prediction:
   data:
@@ -30,4 +30,4 @@ prediction:
   model:
     path: ""
 
-output_folder: "/home/hoehn/data/output/Sentinel-2"
+output_folder: "/home/hoehn/data/output/Sentinel-1"

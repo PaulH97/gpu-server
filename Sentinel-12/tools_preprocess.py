@@ -166,7 +166,7 @@ def calculateIndizesSen12(bands_patches):
         red = bands_patches['B4'][idx]
         swir1 = bands_patches['B11'][idx]
 
-        cr = np.nan_to_num(vv/vh)
+        cr = np.nan_to_num(vh/vv)
         cr_list.append(cr)
         ndvi = np.nan_to_num((nir-red)/(nir+red))
         ndvi_list.append(ndvi) 

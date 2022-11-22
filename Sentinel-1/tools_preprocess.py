@@ -166,7 +166,7 @@ def calculateIndizesSen12(bands_patches):
         red = bands_patches['B4'][idx]
         swir1 = bands_patches['B11'][idx]
 
-        cr = np.nan_to_num(vh/vv)
+        cr = np.nan_to_num(vv/vh)
         cr_list.append(cr)
         ndvi = np.nan_to_num((nir-red)/(nir+red))
         ndvi_list.append(ndvi) 
@@ -180,10 +180,7 @@ def calculateIndizesSen12(bands_patches):
     bands_patches["CR"] = cr_list_norm
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
-
-    # bands_patches = OrderedDict(bands_patches)
-    # bands_patches.move_to_end(last_key)
-    #     
+ 
     return bands_patches
 
 def calculateIndizesSen2(bands_patches):
@@ -210,6 +207,26 @@ def calculateIndizesSen2(bands_patches):
 
     print("Calculated NDVI")
     print("Calculated NDWI")
+
+    return bands_patches
+
+def calculateIndizesSen1(bands_patches):
+
+    cr_list = [] 
+    cr_list_norm = []
+
+    for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
+
+        vv = bands_patches['VV'][idx]
+        vh = bands_patches['VH'][idx]
+        cr = np.nan_to_num(vh/vv)
+        cr_list.append(cr)
+
+    [cr_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in cr_list] 
+  
+    bands_patches["CR"] = cr_list_norm
+
+    print("Calculated CR")
 
     return bands_patches
 
@@ -366,7 +383,7 @@ def filterSen12(sceneList, filterDate=True, filterID=True):
                 
     return final_list
 
-def filterSen2(sceneList, filterDate=True, filterID=True):
+def filterSen1(sceneList, filterDate=True, filterID=True):
     sceneList = random.sample(sceneList, len(sceneList))
     final_list = []
 
