@@ -109,37 +109,37 @@ for idx1,tile in enumerate(Sen1_tiles):
 
         r_array = np.moveaxis(r_array, 0, -1)
         r_array = np.nan_to_num(r_array)
-    
+        #r_array = 10 ** (r_array / 10) # transfer log db values in linear values    
+        
         if idx2 != (len(sen_mask)-1):
             
-            # q25, q75 = np.percentile(r_array, [25, 75])
-            # bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
-            # bins = round((r_array.max() - r_array.min()) / bin_width)   
-        
+            q25, q75 = np.percentile(r_array, [25, 75])
+            bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
+            bins = round((r_array.max() - r_array.min()) / bin_width)   
             a,b = 0,1
-            c,d = np.percentile(r_array, [0.01, 99.9])
+            c,d = np.percentile(r_array, [0.1, 99.9])
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0
             
-            # rows, cols = 2, 2
-            # plt.figure(figsize=(18,18))
-            # plt.subplot(rows, cols, 1)
-            # plt.imshow(r_array)
-            # plt.title("{} tile without linear normalization".format(band_name))
-            # plt.subplot(rows, cols, 2)
-            # plt.imshow(r_array_norm)
-            # plt.title("{} tile after linear normalization".format(band_name))
-            # plt.subplot(rows, cols, 3)
-            # plt.hist(r_array.flatten(), bins = bins)
-            # plt.ylabel('Number of values')
-            # plt.xlabel('DN')
-            # plt.subplot(rows, cols, 4)
-            # plt.hist(r_array_norm.flatten(), bins = bins)
-            # plt.ylabel('Number of values')
-            # plt.xlabel('DN')
-            # plt.show() 
-
+            rows, cols = 2, 2
+            plt.figure(figsize=(18,18))
+            plt.subplot(rows, cols, 1)
+            plt.imshow(r_array)
+            plt.title("{} tile without linear normalization".format(band_name))
+            plt.subplot(rows, cols, 2)
+            plt.imshow(r_array_norm)
+            plt.title("{} tile after linear normalization".format(band_name))
+            plt.subplot(rows, cols, 3)
+            plt.hist(r_array.flatten(), bins = bins)
+            plt.ylabel('Number of values')
+            plt.xlabel('DN')
+            plt.subplot(rows, cols, 4)
+            plt.hist(r_array_norm.flatten(), bins = bins)
+            plt.ylabel('Number of values')
+            plt.xlabel('DN')
+            plt.savefig('hist1.png')
+            
         else:
             r_array_norm = r_array
         
@@ -153,6 +153,7 @@ for idx1,tile in enumerate(Sen1_tiles):
     if idx1 != len(Sen1_tiles)-1: 
         images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed)
     else:
+        bands_patches = calculateIndizesSen1(bands_patches)
         images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed)
         print("Saved crops for prediciton in:{}".format(images_path_pd))
         print("Saved crops for prediciton in:{}".format(masks_path_pd))
@@ -168,5 +169,35 @@ for idx1,tile in enumerate(Sen1_tiles):
 # # Data augmentation of saved patches
 imageAugmentation(images_path, masks_path, seed)
 print("---------------------")
+
+# check equal size of mask and img dir
+images_path = "/home/hoehn/data/output/Sentinel-1/crops/idx/img"
+mask_path = "/home/hoehn/data/output/Sentinel-1/crops/idx/mask"
+
+print("Equal size of directories for img/mask crops:", len(os.listdir(images_path)) == len(os.listdir(mask_path)))
+
+# Check that all values are between 0 and 1 
+# Check equal shape for all images
+masks = os.listdir(mask_path)
+countNr, countSh, countVal= 0,0,0
+maskNR = []
+imgNR = []
+[maskNR.append(i.split("_")[2]) for i in os.listdir(mask_path)]
+[imgNR.append(i.split("_")[2]) for i in os.listdir(images_path)]
+maskNR.sort()
+imgNR.sort()
+
+for path in os.listdir(images_path):     
+    r = load_img_as_array(os.path.join(images_path, path))
+    if r.shape == (128,128,3):
+        countSh += 1
+    r_flat = np.concatenate(r).flatten()
+    result = np.all(r_flat <= 1)
+    result2 = np.all(r_flat >= 0)
+    if result and result2:
+        countVal += 1
+
+print("test 1 {}".format(maskNR == imgNR))
+print("test 2 {}".format(countSh == countVal))
 
 

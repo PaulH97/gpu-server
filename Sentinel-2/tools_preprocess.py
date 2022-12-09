@@ -68,7 +68,7 @@ def patchifyRasterAsArray(array, patch_size):
     
     return result
 
-def savePatchesTrain(patches, output_folder, seed):
+def savePatchesTrain(patches, output_folder, seed, raster_muster):
 
     mask_out = os.path.join(output_folder, "mask") 
     img_out = os.path.join(output_folder, "img") 
@@ -85,17 +85,41 @@ def savePatchesTrain(patches, output_folder, seed):
     idx_noPV = []
     countPV = 0
 
+    r_muster = rasterio.open(raster_muster)
+    r_transform = r_muster.transform
+    r_crs = r_muster.crs
+    
+    row = 0
+    col = 0
+    col_reset = True
+
     for idx, mask in enumerate(patches[mask_name]):
+        
+        idx_t = idx + 1
+        if col_reset:
+            col = 0
+            col_reset = False
+        else:
+            col += 128
+   	
+        xs, ys = rasterio.transform.xy(r_transform, row, col, offset='ul')
+        new_transform = rasterio.transform.from_origin(xs, ys, r_transform[0], -(r_transform[4]))
+
+        if idx_t % 85 == 0:
+            row = int(idx_t / 85) * 128
+            col_reset = True   
 
         mask_flat = np.concatenate(mask).flatten()
 
         if 1 in mask_flat:
-            
+                
             tiff.imwrite(os.path.join(mask_out, f'{mask_name}_mask_{idx}_pv.tif'), mask)
 
             final = rasterio.open(os.path.join(img_out, f'{mask_name}_img_{idx}_pv.tif'),'w', driver='Gtiff',
                             width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
                             count=len(band_names),
+                            crs=r_crs,
+                            transform=new_transform,
                             dtype=rasterio.float64)
 
             for band_nr, band_name in enumerate(band_names):
@@ -108,7 +132,25 @@ def savePatchesTrain(patches, output_folder, seed):
     random.seed(seed)
     random_idx = random.sample(idx_noPV, countPV)
     
+    row = 0
+    col = 0
+    col_reset = True
+
     for idx, mask in enumerate(patches[mask_name]):
+
+        idx_t = idx + 1
+        if col_reset:
+            col = 0
+            col_reset = False
+        else:
+            col += 128
+    	
+        xs, ys = rasterio.transform.xy(r_transform, row, col, offset='ll')
+        new_transform = rasterio.transform.from_origin(xs, ys, r_transform[0], -(r_transform[4]))
+
+        if idx_t % 85 == 0:
+            row = int(idx_t / 85) * 128
+            col_reset = True     
 
         if idx in random_idx:
 
@@ -117,6 +159,8 @@ def savePatchesTrain(patches, output_folder, seed):
             final = rasterio.open(os.path.join(img_out, f'{mask_name}_img_{idx}_nopv.tif'),'w', driver='Gtiff',
                             width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
                             count=len(band_names),
+                            crs=r_crs,
+                            transform=r_transform,
                             dtype=rasterio.float64)
 
             for band_nr, band_name in enumerate(band_names):
@@ -153,8 +197,6 @@ def savePatchesPredict(patches, output_folder):
 
 def calculateIndizesSen12(bands_patches):
 
-    #last_key = list(bands_patches.keys())[-1]
-
     cr_list, ndvi_list, ndwi_list = [], [], []
     cr_list_norm, ndvi_list_norm, ndwi_list_norm = [], [], []
 
@@ -181,9 +223,6 @@ def calculateIndizesSen12(bands_patches):
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
 
-    # bands_patches = OrderedDict(bands_patches)
-    # bands_patches.move_to_end(last_key)
-    #     
     return bands_patches
 
 def calculateIndizesSen2(bands_patches):

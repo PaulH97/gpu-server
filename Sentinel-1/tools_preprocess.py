@@ -24,7 +24,7 @@ def resampleRaster(raster_path, resolution):
     
     raster = gdal.Open(raster_path)
     #ds = gdal.Warp(output_file, raster, xRes=resolution, yRes=resolution, resampleAlg="bilinear", format="GTiff")
-    ds = gdal.Warp('', raster, xRes=resolution, yRes=resolution, resampleAlg="bilinear", format="VRT")
+    ds = gdal.Warp('', raster, xRes=resolution, yRes=resolution, resampleAlg="bilinear", format="GTiff")
 
     return ds
 
@@ -166,7 +166,7 @@ def calculateIndizesSen12(bands_patches):
         red = bands_patches['B4'][idx]
         swir1 = bands_patches['B11'][idx]
 
-        cr = np.nan_to_num(vv/vh)
+        cr = np.nan_to_num(vh/vv)
         cr_list.append(cr)
         ndvi = np.nan_to_num((nir-red)/(nir+red))
         ndvi_list.append(ndvi) 
@@ -181,6 +181,10 @@ def calculateIndizesSen12(bands_patches):
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
  
+    print("Cross Ratio")
+    print("Calculated NDVI")
+    print("Calculated NDWI")
+   
     return bands_patches
 
 def calculateIndizesSen2(bands_patches):

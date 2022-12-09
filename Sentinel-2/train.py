@@ -44,6 +44,9 @@ model_path = os.path.join(output_folder, "models", model_name)
 img_list.sort()
 mask_list.sort()
 
+import pdb 
+pdb.set_trace()
+
 # Split training data
 X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.20, shuffle=True, random_state = seed)
 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.10, shuffle=True, random_state = seed)
