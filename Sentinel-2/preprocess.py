@@ -7,6 +7,7 @@ import rasterio
 from matplotlib import pyplot as plt
 import shutil
 import warnings
+from sklearn.model_selection import train_test_split
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.seterr(divide='ignore', invalid='ignore')
@@ -31,44 +32,18 @@ if os.path.exists("config.yaml"):
 crop_folder = os.path.join(output_folder, "crops")
 if indizes:
     crop_folder = os.path.join(crop_folder, "idx")
-    if os.path.exists(crop_folder):
-        shutil.rmtree(crop_folder)
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
-    else:
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
+    rebuildCropFolder(crop_folder)
 else:
     crop_folder = os.path.join(crop_folder, "no_idx")
-    if os.path.exists(crop_folder):
-        shutil.rmtree(crop_folder)
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
-    else:
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
+    rebuildCropFolder(crop_folder)
 
 pred_cfolder = os.path.join(output_folder, "prediction", "crops")
-if os.path.exists(pred_cfolder):
-    shutil.rmtree(pred_cfolder)
-    os.mkdir(pred_cfolder)
-    os.mkdir(os.path.join(pred_cfolder, "full_img"))
-    os.mkdir(os.path.join(pred_cfolder, "img"))
-    os.mkdir(os.path.join(pred_cfolder, "mask"))
-else:
-    os.mkdir(pred_cfolder)
-    os.mkdir(os.path.join(pred_cfolder, "full_img"))
-    os.mkdir(os.path.join(pred_cfolder, "img"))
-    os.mkdir(os.path.join(pred_cfolder, "mask"))
+rebuildPredFolder(pred_cfolder)
     
 file = open("/home/hoehn/data/output/Sentinel-2/sentinel2_tiles.txt", "r")
 Sen2_tiles = file.readlines()
 
-Sen2_tiles = Sen2_tiles + [sentinel2_pred]
+Sen2_tiles = Sen2_tiles + [sentinel2_pred] # Sentinel-2 training tiles + Sentinel-2 prediction tile
 
 [print(tile.strip()) for tile in Sen2_tiles]
 
@@ -102,10 +77,11 @@ for idx1,tile in enumerate(Sen2_tiles):
         
         raster = rasterio.open(band)
         
+        # resample all bands that do not have a resolution of 10x10m
         if raster.transform[0] != 10:
             raster = resampleRaster(band, 10)
             r_array = raster.ReadAsArray()
-            r_array = np.expand_dims(r_array, axis=0)
+            r_array = np.expand_dims(r_array, axis=0) # (10980,10980,1)
         else:
             r_array = raster.read()[:,:10980,:10980]
 
@@ -113,16 +89,16 @@ for idx1,tile in enumerate(Sen2_tiles):
         r_array = np.nan_to_num(r_array)
     
         if idx2 != (len(sen_mask)-1):
-            
-            # q25, q75 = np.percentile(r_array, [25, 75])
-            # bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
-            # bins = round((r_array.max() - r_array.min()) / bin_width)   
-        
+                  
             a,b = 0,1
             c,d = np.percentile(r_array, [0.01, 99.9])
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0
+
+            # q25, q75 = np.percentile(r_array, [25, 75])
+            # bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
+            # bins = round((r_array.max() - r_array.min()) / bin_width)   
             
             # rows, cols = 2, 2
             # plt.figure(figsize=(18,18))
@@ -140,7 +116,7 @@ for idx1,tile in enumerate(Sen2_tiles):
             # plt.hist(r_array_norm.flatten(), bins = bins)
             # plt.ylabel('Number of values')
             # plt.xlabel('DN')
-            # plt.show() 
+            # plt.savefig("Histo.jpg")
 
         else:
             r_array_norm = r_array
@@ -153,20 +129,33 @@ for idx1,tile in enumerate(Sen2_tiles):
 
     # Save patches in folder as raster file
     if idx1 != len(Sen2_tiles)-1: 
-        images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed, raster_muster)
+        images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed, raster_muster) # save patches for training data 
     else:
-        images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed, raster_muster)
-        print("Saved crops for prediciton in:{}".format(images_path_pd))
-        print("Saved crops for prediciton in:{}".format(masks_path_pd))
+        # save patches for prediction - necessary because i want all preprocess work done in one file 
         mask_name = os.path.basename(tile_name).split("_")[1]
         del bands_patches[mask_name]
-        savePatchesPredict(bands_patches, pred_cfolder)
+        savePatchesPredict(bands_patches, pred_cfolder) # save patches of entire sentiel 2 tile for prediction 
 
     # Clear memory
     bands_patches = {}
     del r_array
     del raster
 
-# # Data augmentation of saved patches
-imageAugmentation(images_path, masks_path, seed)
-print("---------------------")
+img_list = glob("{}/*.tif".format(images_path))
+mask_list = glob("{}/*.tif".format(masks_path))
+
+img_list.sort()
+mask_list.sort()
+
+X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.10, shuffle=True, random_state = seed)
+
+# Move test data in test directory
+for idx in range(len(X_test)):
+    X_test_src = X_test[idx]
+    X_test_dst = "/".join(["test" if i == "train" else i for i in X_test[idx].split(os.sep)]) 
+    y_test_src = y_test[idx]
+    y_test_dst = "/".join(["test" if i == "train" else i for i in y_test[idx].split(os.sep)]) 
+    shutil.move(X_test_src, X_test_dst)
+    shutil.move(y_test_src, y_test_dst)
+
+imageAugmentation(X_train, y_train, seed)
