@@ -18,7 +18,7 @@ model_parameter:
   patch_size: 128
   optimizer: Adam
   loss_function: binary_crossentropy
-  epochs: 5
+  epochs: 30
   kfold: 5
 
 indizes: True
@@ -26,9 +26,9 @@ indizes: True
 prediction:
   data:
     Sentinel1: "/codede/Sentinel-1/SAR/CARD-BS-MC/2021/07/01/S1_CARD-BS-MC_202107_32UPV"
-    Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/07/01/S2_L3_WASP_202107_32UPV"
+    Sentinel2: "/codede/Sentinel-2/MSI/L3-WASP/2021/06/01/S2_L3_WASP_202106_32UNC"
     solar_path: "/home/hoehn/data/input/solarParks_predict.shp"  
   model:
-    path: ""
+    path: "/home/hoehn/data/output/Sentinel-2/models/Ad_bc_30_idx"
 
 output_folder: "/home/hoehn/data/output/Sentinel-2"

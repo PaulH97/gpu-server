@@ -3,8 +3,9 @@ import tensorflow as tf
 import os
 import numpy as np
 from glob import glob
-from datagen import CustomImageGeneratorPrediction
-from tools_train_predict import dice_coef, predictPatches, load_img_as_array, jaccard_distance_coef
+from datagen import CustomImageGeneratorPrediction, CustomImageGenerator
+from tools_model import dice_coef, predictPatches, load_img_as_array
+from unet import binary_unet
 import yaml
 from keras import backend as K
 
@@ -18,9 +19,6 @@ if os.path.exists("config.yaml"):
         model_path = data['prediction']['model']['path']
         output_folder = data["output_folder"]
 
-model = tf.keras.models.load_model(model_path, compile=False, custom_objects={'dice_coef': dice_coef})
-patch_size = model.input_shape[1]
-
 patches_path = glob(r"{}/prediction/crops/full_img/*.tif".format(output_folder))
 patches_path = sorted(patches_path, key = lambda x: int(x.split("_")[-1].split(".")[0]))
 
@@ -30,6 +28,7 @@ b_count = patch_array.shape[-1]
 
 predict_datagen = CustomImageGeneratorPrediction(patches_path, patch_xy, b_count)
 
+model = tf.keras.models.load_model(model_path, compile=False, custom_objects={'dice_coef': dice_coef})
 prediction = predictPatches(model, predict_datagen, example_raster, os.path.join(output_folder, "prediction"))
 
 # # Get model metrics on test data

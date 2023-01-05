@@ -1,10 +1,6 @@
-# import rasterio
-# from tools_preprocess import resampleRaster, patchifyRasterAsArray, savePatchesPredict, calculateIndizesSen2
-
 import os
 import numpy as np
 from glob import glob
-
 import tensorflow as tf 
 from tools_model import load_img_as_array, predictPatches, dice_coef
 from datagen import CustomImageGeneratorPrediction
