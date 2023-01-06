@@ -8,6 +8,7 @@ import json
 import tifffile as tiff
 import random
 from glob import glob
+import tensorflow as tf
 
 def load_img_as_array(path):
     # read img as array 
@@ -20,11 +21,18 @@ def dice_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
-    coef = (2. * intersection + K.epsilon()) / (K.sum(y_true_f) + K.sum(y_pred_f) + K.epsilon())
+    union = K.sum(y_true_f) + K.sum(y_pred_f)
+    coef = (2. * intersection) / union + K.epsilon()
     return coef
 
-def dice_coef_loss(y_true, y_pred):
-    return 1-dice_coef(y_true, y_pred)
+def dice_loss(y_true, y_pred):
+    y_true_f = tf.reshape(y_true, [-1])
+    y_pred_f = tf.reshape(y_pred, [-1])
+    intersection = tf.reduce_sum(y_true_f * y_pred_f)
+    union = tf.reduce_sum(y_true_f) + tf.reduce_sum(y_pred_f)
+    dice = 2 * intersection / (union + K.epsilon())
+    loss = 1 - dice 
+    return loss
 
 def jaccard_distance_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)

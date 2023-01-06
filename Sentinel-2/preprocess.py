@@ -13,6 +13,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
+# -------------------- Load data -------------------------------
 # Read data from config file
 if os.path.exists("config.yaml"):
     with open('config.yaml') as f:
@@ -29,6 +30,8 @@ if os.path.exists("config.yaml"):
 
         seed = data["seed"]
 
+# -------------------- Build folder structure ------------------------
+
 crop_folder = os.path.join(output_folder, "crops")
 if indizes:
     crop_folder = os.path.join(crop_folder, "idx")
@@ -39,15 +42,17 @@ else:
 
 pred_cfolder = os.path.join(output_folder, "prediction", "crops")
 rebuildPredFolder(pred_cfolder)
-    
+
+# -------------------- Read Sentinel data ------------------------------
+
 file = open("/home/hoehn/data/output/Sentinel-2/sentinel2_tiles.txt", "r")
 Sen2_tiles = file.readlines()
 
-Sen2_tiles = Sen2_tiles + [sentinel2_pred] # Sentinel-2 training tiles + Sentinel-2 prediction tile
+Sen2_tiles = Sen2_tiles + [sentinel2_pred] # Sentinel-2 training tiles + Sentinel-2 prediction tile -> paths
 
 [print(tile.strip()) for tile in Sen2_tiles]
 
-# Get input data = Sentinel 2
+# -------------------- Rasterize PV & Crop Sentinel 2 tiles & Calculate IDX -----------------------
 for idx1,tile in enumerate(Sen2_tiles):
 
     # remove \n from file path
@@ -140,6 +145,8 @@ for idx1,tile in enumerate(Sen2_tiles):
     bands_patches = {}
     del r_array
     del raster
+
+# ------------------ Image Augmentation -------------------------------
 
 img_list = glob("{}/*.tif".format(images_path))
 mask_list = glob("{}/*.tif".format(masks_path))

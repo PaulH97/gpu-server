@@ -1,7 +1,7 @@
 import os
 from glob import glob
 import yaml
-from tools_model import dice_coef, load_img_as_array, load_trainData
+from tools_model import dice_coef, dice_loss, load_img_as_array, load_trainData
 from sklearn.model_selection import train_test_split
 from unet import binary_unet
 from matplotlib import pyplot as plt
@@ -82,8 +82,8 @@ model.compile(optimizer=optimizer, loss=loss_function, metrics=[dice_coef,
 #callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss")
 #log_dir = os.path.join(output_folder, "models", "logs", model_name) 
 #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
-checkpoint_path = os.path.join(output_folder, "models", "checkpoints", model_name)
-checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_iou", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
+#checkpoint_path = os.path.join(output_folder, "models", "checkpoints", model_name)
+#checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="iou", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
 
 model.fit(train_datagen, verbose=1, epochs=epochs)
 
@@ -93,15 +93,15 @@ model.save(model_path)
 #model.load_weights(checkpoint_path)
 model.evaluate(test_datagen)
 
-pred_test = model.predict(test_datagen) # f.eg.(288,128,128,1)
-pred_test = (pred_test > 0.5).astype(np.uint8) 
+# pred_test = model.predict(test_datagen) # f.eg.(288,128,128,1)
+# pred_test = (pred_test > 0.5).astype(np.uint8) 
 
-for i in range((test_datagen[1][1].shape[0])):
+# for i in range((test_datagen[1][1].shape[0])):
 
-    plt.figure(figsize=(12,6))
-    plt.subplot(121)
-    plt.imshow(test_datagen[0][1][i])
-    plt.subplot(122)
-    plt.imshow(pred_test[i])
-    plt.show()
-    plt.savefig("/home/hoehn/data/prediction/prediction{}.png".format(i)) 
+#     plt.figure(figsize=(12,6))
+#     plt.subplot(121)
+#     plt.imshow(test_datagen[0][1][i])
+#     plt.subplot(122)
+#     plt.imshow(pred_test[i])
+#     plt.show()
+#     plt.savefig("/home/hoehn/data/prediction/prediction{}.png".format(i)) 
