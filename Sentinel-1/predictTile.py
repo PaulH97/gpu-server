@@ -1,27 +1,30 @@
-import rasterio
-import tensorflow as tf 
 import os
+import yaml
 import numpy as np
 from glob import glob
+import tensorflow as tf 
+from tools_model import load_img_as_array, predictPatches, dice_coef
 from datagen import CustomImageGeneratorPrediction
-from tools_train_predict import dice_coef, predictPatches, load_img_as_array, jaccard_distance_coef
-import yaml
-from keras import backend as K
+from glob import glob
+from matplotlib import pyplot as plt
 
 # Read data from config file
 if os.path.exists("config.yaml"):
     with open('config.yaml') as f:
-        
+
         data = yaml.load(f, Loader=yaml.FullLoader)
-        sentinel2 = data['prediction']['data']['Sentinel2']
-        example_raster = glob("{}/*B2.tif".format(sentinel2))[0]
-        model_path = data['prediction']['model']['path']
-        output_folder = data["output_folder"]
+
+        patch_size = data['model_parameter']['patch_size']
+        indizes = data["indizes"]
+        tile_folder = data['prediction']["data"]['Sentinel1']
+        sentinel_paths = glob("{}/*.tif".format(tile_folder))
+        model_path = data["prediction"]["model"]["path"]
+
+tile_name = tile_folder.split("_")[-1]
+output_folder = os.path.join("/home/hoehn/data/prediction", tile_name)
 
 model = tf.keras.models.load_model(model_path, compile=False, custom_objects={'dice_coef': dice_coef})
-patch_size = model.input_shape[1]
-
-patches_path = glob(r"{}/prediction/crops/full_img/*.tif".format(output_folder))
+patches_path = glob(r"{}/full_img/*.tif".format(output_folder))
 patches_path = sorted(patches_path, key = lambda x: int(x.split("_")[-1].split(".")[0]))
 
 patch_array = load_img_as_array(patches_path[0])
@@ -30,7 +33,7 @@ b_count = patch_array.shape[-1]
 
 predict_datagen = CustomImageGeneratorPrediction(patches_path, patch_xy, b_count)
 
-prediction = predictPatches(model, predict_datagen, example_raster, os.path.join(output_folder, "prediction"))
+predictPatches(model, predict_datagen, sentinel_paths[4], output_folder)
 
 # # Get model metrics on test data
 # from sklearn.metrics import jaccard_score, f1_score, accuracy_score
@@ -50,5 +53,3 @@ prediction = predictPatches(model, predict_datagen, example_raster, os.path.join
 # print("Jaccard(%): ", jaccard*100)
 # print("F1-Score(%): ", f1*100)
 # print("Accuracy(%): ", acc*100)
-
-

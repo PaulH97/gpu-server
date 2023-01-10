@@ -4,13 +4,16 @@ import yaml
 import numpy as np
 from tools_preprocess import *
 import rasterio
+from matplotlib import pyplot as plt
 import shutil
 import warnings
+from sklearn.model_selection import train_test_split
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
+# -------------------- Load data -------------------------------
 # Read data from config file
 if os.path.exists("config.yaml"):
     with open('config.yaml') as f:
@@ -27,52 +30,29 @@ if os.path.exists("config.yaml"):
 
         seed = data["seed"]
 
-file = open("/home/hoehn/data/output/Sentinel-1/sentinel1_tiles.txt", "r")
+# -------------------- Build folder structure ------------------------
 
 crop_folder = os.path.join(output_folder, "crops")
 if indizes:
     crop_folder = os.path.join(crop_folder, "idx")
-    if os.path.exists(crop_folder):
-        shutil.rmtree(crop_folder)
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
-    else:
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
+    rebuildCropFolder(crop_folder)
 else:
     crop_folder = os.path.join(crop_folder, "no_idx")
-    if os.path.exists(crop_folder):
-        shutil.rmtree(crop_folder)
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
-    else:
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
+    rebuildCropFolder(crop_folder)
 
 pred_cfolder = os.path.join(output_folder, "prediction", "crops")
-if os.path.exists(pred_cfolder):
-    shutil.rmtree(pred_cfolder)
-    os.mkdir(pred_cfolder)
-    os.mkdir(os.path.join(pred_cfolder, "full_img"))
-    os.mkdir(os.path.join(pred_cfolder, "img"))
-    os.mkdir(os.path.join(pred_cfolder, "mask"))
-else:
-    os.mkdir(pred_cfolder)
-    os.mkdir(os.path.join(pred_cfolder, "full_img"))
-    os.mkdir(os.path.join(pred_cfolder, "img"))
-    os.mkdir(os.path.join(pred_cfolder, "mask"))
+rebuildPredFolder(pred_cfolder)
     
+# -------------------- Read Sentinel data ------------------------------
+
+file = open("/home/hoehn/data/output/Sentinel-2/sentinel2_tiles.txt", "r")
 Sen1_tiles = file.readlines()
 
-Sen1_tiles = Sen1_tiles + [sentinel1_pred] 
+Sen1_tiles = Sen1_tiles + [sentinel1_pred] # Sentinel-2 training tiles + Sentinel-2 prediction tile -> paths
 
 [print(tile.strip()) for tile in Sen1_tiles]
 
-# Get input data = Sentinel 2
+# -------------------- Rasterize PV & Crop Sentinel 2 tiles & Calculate IDX -----------------------
 for idx1,tile in enumerate(Sen1_tiles):
 
     # remove \n from file path
@@ -82,6 +62,8 @@ for idx1,tile in enumerate(Sen1_tiles):
     sen_path = glob(f"{tile}/*.tif") 
     sen_path.sort() # VH VV 
 
+    # raster muster for rasterize shps + georeferenzing patches
+    raster_muster = sen_path[2]
     print("Start with tile: ", tile_name)
 
     # Create mask as raster for each sentinel tile
@@ -100,6 +82,7 @@ for idx1,tile in enumerate(Sen1_tiles):
         
         raster = rasterio.open(band)
 
+        # resample all bands that do not have a resolution of 10x10m
         if raster.transform[0] != 10:
             raster = resampleRaster(band, 10)
             r_array = raster.ReadAsArray()
@@ -113,32 +96,33 @@ for idx1,tile in enumerate(Sen1_tiles):
         
         if idx2 != (len(sen_mask)-1):
             
-            q25, q75 = np.percentile(r_array, [25, 75])
-            bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
-            bins = round((r_array.max() - r_array.min()) / bin_width)   
             a,b = 0,1
-            c,d = np.percentile(r_array, [0.1, 99.9])
+            c,d = np.percentile(r_array, [0.01, 99.9])
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0
             
-            rows, cols = 2, 2
-            plt.figure(figsize=(18,18))
-            plt.subplot(rows, cols, 1)
-            plt.imshow(r_array)
-            plt.title("{} tile without linear normalization".format(band_name))
-            plt.subplot(rows, cols, 2)
-            plt.imshow(r_array_norm)
-            plt.title("{} tile after linear normalization".format(band_name))
-            plt.subplot(rows, cols, 3)
-            plt.hist(r_array.flatten(), bins = bins)
-            plt.ylabel('Number of values')
-            plt.xlabel('DN')
-            plt.subplot(rows, cols, 4)
-            plt.hist(r_array_norm.flatten(), bins = bins)
-            plt.ylabel('Number of values')
-            plt.xlabel('DN')
-            plt.savefig('hist1.png')
+            # q25, q75 = np.percentile(r_array, [25, 75])
+            # bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
+            # bins = round((r_array.max() - r_array.min()) / bin_width)   
+            
+            # rows, cols = 2, 2
+            # plt.figure(figsize=(18,18))
+            # plt.subplot(rows, cols, 1)
+            # plt.imshow(r_array)
+            # plt.title("{} tile without normalization".format(band_name))
+            # plt.subplot(rows, cols, 2)
+            # plt.imshow(r_array_norm)
+            # plt.title("{} tile after normalization".format(band_name))
+            # plt.subplot(rows, cols, 3)
+            # plt.hist(r_array.flatten(), bins = bins)
+            # plt.ylabel('Number of values')
+            # plt.xlabel('DN')
+            # plt.subplot(rows, cols, 4)
+            # plt.hist(r_array_norm.flatten(), bins = bins)
+            # plt.ylabel('Number of values')
+            # plt.xlabel('DN')
+            # plt.savefig("Histo.jpg")
             
         else:
             r_array_norm = r_array
@@ -153,10 +137,7 @@ for idx1,tile in enumerate(Sen1_tiles):
     if idx1 != len(Sen1_tiles)-1: 
         images_path, masks_path = savePatchesTrain(bands_patches, crop_folder, seed)
     else:
-        bands_patches = calculateIndizesSen1(bands_patches)
-        images_path_pd, masks_path_pd = savePatchesTrain(bands_patches, pred_cfolder, seed)
-        print("Saved crops for prediciton in:{}".format(images_path_pd))
-        print("Saved crops for prediciton in:{}".format(masks_path_pd))
+        # save patches for prediction - necessary because i want all preprocess work done in one file 
         mask_name = os.path.basename(tile_name).split("_")[1]
         del bands_patches[mask_name]
         savePatchesPredict(bands_patches, pred_cfolder)
@@ -166,38 +147,23 @@ for idx1,tile in enumerate(Sen1_tiles):
     del r_array
     del raster
 
-# # Data augmentation of saved patches
-imageAugmentation(images_path, masks_path, seed)
-print("---------------------")
+# ------------------ Image Augmentation -------------------------------
 
-# check equal size of mask and img dir
-images_path = "/home/hoehn/data/output/Sentinel-1/crops/idx/img"
-mask_path = "/home/hoehn/data/output/Sentinel-1/crops/idx/mask"
+img_list = glob("{}/*.tif".format(images_path))
+mask_list = glob("{}/*.tif".format(masks_path))
 
-print("Equal size of directories for img/mask crops:", len(os.listdir(images_path)) == len(os.listdir(mask_path)))
+img_list.sort()
+mask_list.sort()
 
-# Check that all values are between 0 and 1 
-# Check equal shape for all images
-masks = os.listdir(mask_path)
-countNr, countSh, countVal= 0,0,0
-maskNR = []
-imgNR = []
-[maskNR.append(i.split("_")[2]) for i in os.listdir(mask_path)]
-[imgNR.append(i.split("_")[2]) for i in os.listdir(images_path)]
-maskNR.sort()
-imgNR.sort()
+X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.10, shuffle=True, random_state = seed)
 
-for path in os.listdir(images_path):     
-    r = load_img_as_array(os.path.join(images_path, path))
-    if r.shape == (128,128,3):
-        countSh += 1
-    r_flat = np.concatenate(r).flatten()
-    result = np.all(r_flat <= 1)
-    result2 = np.all(r_flat >= 0)
-    if result and result2:
-        countVal += 1
+# Move test data in test directory
+for idx in range(len(X_test)):
+    X_test_src = X_test[idx]
+    X_test_dst = "/".join(["test" if i == "train" else i for i in X_test[idx].split(os.sep)]) 
+    y_test_src = y_test[idx]
+    y_test_dst = "/".join(["test" if i == "train" else i for i in y_test[idx].split(os.sep)]) 
+    shutil.move(X_test_src, X_test_dst)
+    shutil.move(y_test_src, y_test_dst)
 
-print("test 1 {}".format(maskNR == imgNR))
-print("test 2 {}".format(countSh == countVal))
-
-
+imageAugmentation(X_train, y_train, seed)

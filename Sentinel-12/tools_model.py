@@ -4,6 +4,11 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 from keras import backend as K
+import json
+import tifffile as tiff
+import random
+from glob import glob
+import tensorflow as tf
 
 def load_img_as_array(path):
     # read img as array 
@@ -16,11 +21,18 @@ def dice_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
-    coef = (2. * intersection + K.epsilon()) / (K.sum(y_true_f) + K.sum(y_pred_f) + K.epsilon())
+    union = K.sum(y_true_f) + K.sum(y_pred_f)
+    coef = (2. * intersection) / union + K.epsilon()
     return coef
 
-def dice_coef_loss(y_true, y_pred):
-    return 1-dice_coef(y_true, y_pred)
+def dice_loss(y_true, y_pred):
+    y_true_f = tf.reshape(y_true, [-1])
+    y_pred_f = tf.reshape(y_pred, [-1])
+    intersection = tf.reduce_sum(y_true_f * y_pred_f)
+    union = tf.reduce_sum(y_true_f) + tf.reduce_sum(y_pred_f)
+    dice = 2 * intersection / (union + K.epsilon())
+    loss = 1 - dice 
+    return loss
 
 def jaccard_distance_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)
@@ -60,5 +72,53 @@ def predictPatches(model, predict_datagen, raster_path, output_folder):
 
     final.write(recon_predict[:,:,0],1) 
     final.close()
+    print("Reconstructed and predicted sentinel tile and saved in: ", predict_out)
     
     return recon_predict
+
+def append_new_line(file_name, text_to_append):
+    """Append given text as a new line at the end of file"""
+    # Open the file in append & read mode ('a+')
+    with open(file_name, "a+") as file_object:
+        # Move read cursor to the start of file.
+        file_object.seek(0)
+        # If file is not empty then append '\n'
+        data = file_object.read(100)
+        if len(data) > 0:
+            file_object.write("\n")
+        # Append text at the end of file
+        file_object.write(text_to_append)
+
+
+def createMetrics(file, metrics_dict, name_data):
+
+    sum = {}
+    append_new_line(file, f"--------------------- {name_data} ---------------------")
+    for key, value in metrics_dict.items():
+        append_new_line(file, f"--------------------- {str(key)} ---------------------")
+        append_new_line(file, json.dumps(value))
+        for k,v in value.items():
+            if sum.get(k) is None:
+                sum[k] = v
+            else:
+                sum[k] += v
+
+    mean = {key: value/len(metrics_dict) for key, value in sum.items()}
+
+    append_new_line(file, "--------------------- Mean metrics ---------------------")
+    [append_new_line(file, f"{key}: {value}") for key, value in mean.items()]
+
+def load_trainData(output_folder, idx):
+
+    if idx:
+        X_train = glob("{}/crops/idx/train/img/*.tif".format(output_folder))
+        y_train = glob("{}/crops/idx/train/mask/*.tif".format(output_folder))
+        X_test = glob("{}/crops/idx/test/img/*.tif".format(output_folder))
+        y_test = glob("{}/crops/idx/test/mask/*.tif".format(output_folder))
+    else:
+        X_train = glob("{}/crops/no_idx/train/img/*.tif".format(output_folder))
+        y_train = glob("{}/crops/no_idx/train/mask/*.tif".format(output_folder))
+        X_test = glob("{}/crops/no_idx/test/img/*.tif".format(output_folder))
+        y_test = glob("{}/crops/no_idx/test/mask/*.tif".format(output_folder))
+
+    return X_train, X_test, y_train, y_test

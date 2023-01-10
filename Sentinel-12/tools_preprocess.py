@@ -10,6 +10,7 @@ import random
 from matplotlib import pyplot as plt
 import requests
 import geopandas as gpd
+import shutil
 
 np.seterr(divide='ignore', invalid='ignore')
 
@@ -68,10 +69,10 @@ def patchifyRasterAsArray(array, patch_size):
     
     return result
 
-def savePatchesTrain(patches, output_folder, seed):
+def savePatchesTrain(patches, output_folder, seed, raster_muster):
 
-    mask_out = os.path.join(output_folder, "mask") 
-    img_out = os.path.join(output_folder, "img") 
+    mask_out = os.path.join(output_folder, "train", "mask") 
+    img_out = os.path.join(output_folder, "train", "img") 
     
     mask_dict = {k: v for k, v in patches.items() if k.startswith("3")}
     for k in mask_dict.keys():
@@ -85,17 +86,41 @@ def savePatchesTrain(patches, output_folder, seed):
     idx_noPV = []
     countPV = 0
 
+    r_muster = rasterio.open(raster_muster)
+    r_transform = r_muster.transform
+    r_crs = r_muster.crs
+    
+    row = 0
+    col = 0
+    col_reset = True
+
     for idx, mask in enumerate(patches[mask_name]):
+        
+        idx_t = idx + 1
+        if col_reset:
+            col = 0
+            col_reset = False
+        else:
+            col += 128
+   	
+        xs, ys = rasterio.transform.xy(r_transform, row, col, offset='ul')
+        new_transform = rasterio.transform.from_origin(xs, ys, r_transform[0], -(r_transform[4]))
+
+        if idx_t % 85 == 0:
+            row = int(idx_t / 85) * 128
+            col_reset = True   
 
         mask_flat = np.concatenate(mask).flatten()
 
         if 1 in mask_flat:
-            
+                
             tiff.imwrite(os.path.join(mask_out, f'{mask_name}_mask_{idx}_pv.tif'), mask)
 
             final = rasterio.open(os.path.join(img_out, f'{mask_name}_img_{idx}_pv.tif'),'w', driver='Gtiff',
                             width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
                             count=len(band_names),
+                            crs=r_crs,
+                            transform=new_transform,
                             dtype=rasterio.float64)
 
             for band_nr, band_name in enumerate(band_names):
@@ -104,11 +129,29 @@ def savePatchesTrain(patches, output_folder, seed):
             countPV += 1
         else:
             idx_noPV.append(idx)
-
+    
     random.seed(seed)
     random_idx = random.sample(idx_noPV, countPV)
+    
+    row = 0
+    col = 0
+    col_reset = True
 
     for idx, mask in enumerate(patches[mask_name]):
+
+        idx_t = idx + 1
+        if col_reset:
+            col = 0
+            col_reset = False
+        else:
+            col += 128
+    	
+        xs, ys = rasterio.transform.xy(r_transform, row, col, offset='ll')
+        new_transform = rasterio.transform.from_origin(xs, ys, r_transform[0], -(r_transform[4]))
+
+        if idx_t % 85 == 0:
+            row = int(idx_t / 85) * 128
+            col_reset = True     
 
         if idx in random_idx:
 
@@ -117,6 +160,8 @@ def savePatchesTrain(patches, output_folder, seed):
             final = rasterio.open(os.path.join(img_out, f'{mask_name}_img_{idx}_nopv.tif'),'w', driver='Gtiff',
                             width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
                             count=len(band_names),
+                            crs=r_crs,
+                            transform=r_transform,
                             dtype=rasterio.float64)
 
             for band_nr, band_name in enumerate(band_names):
@@ -140,20 +185,18 @@ def savePatchesPredict(patches, output_folder):
 
     for idx in range(len(patches[band_names[0]])):
 
-            final = rasterio.open(os.path.join(img_out, f'img_{idx}.tif'),'w', driver='Gtiff',
-                            width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
-                            count=len(band_names),
-                            dtype=rasterio.float64)
+        final = rasterio.open(os.path.join(img_out, f'img_{idx}.tif'),'w', driver='Gtiff',
+                        width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
+                        count=len(band_names),
+                        dtype=rasterio.float64)
 
-            for band_nr, band_name in enumerate(band_names):
-                final.write(patches[band_name][idx][:,:,0],band_nr+1)
-            final.close()
+        for band_nr, band_name in enumerate(band_names):
+            final.write(patches[band_name][idx][:,:,0],band_nr+1)
+        final.close()
 
     return 
 
 def calculateIndizesSen12(bands_patches):
-
-    #last_key = list(bands_patches.keys())[-1]
 
     cr_list, ndvi_list, ndwi_list = [], [], []
     cr_list_norm, ndvi_list_norm, ndwi_list_norm = [], [], []
@@ -181,10 +224,6 @@ def calculateIndizesSen12(bands_patches):
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
 
-    print("Cross Ratio")
-    print("Calculated NDVI")
-    print("Calculated NDWI")
-   
     return bands_patches
 
 def calculateIndizesSen2(bands_patches):
@@ -245,22 +284,13 @@ def imageAugmentation(images_path, masks_path, seed):
 
     transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip, 'vertical shift': v_transl, 'horizontal shift': h_transl}         
 
-    images=[] 
-    masks=[]
+    images_path.sort()
+    masks_path.sort()     
 
-    for im in os.listdir(images_path):      
-        images.append(os.path.join(images_path,im))
-
-    for msk in os.listdir(masks_path):  
-        masks.append(os.path.join(masks_path,msk))
-    
-    images.sort()
-    masks.sort()      
-
-    for i in range(len(masks)): 
+    for i in range(len(masks_path)): 
         
-        image = images[i]
-        mask = masks[i]
+        image = images_path[i]
+        mask = masks_path[i]
 
         original_image = load_img_as_array(image)
         original_mask = load_img_as_array(mask)
@@ -272,7 +302,7 @@ def imageAugmentation(images_path, masks_path, seed):
 
             new_image_path= image.split(".")[0] + "_aug{}.tif".format(idx)
             new_mask_path = mask.split(".")[0] + "_aug{}.tif".format(idx)
-            
+                       
             new_img = rasterio.open(new_image_path,'w', driver='Gtiff',
                         width=transformed_image.shape[0], height=transformed_image.shape[1],
                         count=original_image.shape[-1],
@@ -287,7 +317,6 @@ def imageAugmentation(images_path, masks_path, seed):
             # if i == 25: 
             #     rows, cols = 2, 2
             #     plt.figure(figsize=(12,12))
-        
             #     plt.subplot(rows, cols, 1)
             #     plt.imshow(original_image[:,:,:3])
             #     plt.subplot(rows, cols, 2)
@@ -297,8 +326,8 @@ def imageAugmentation(images_path, masks_path, seed):
             #     plt.subplot(rows, cols, 4)
             #     plt.imshow(transformed_mask)
             #     plt.show()
-   
-    return
+      
+    return 
 
 def ScenceFinderAOI(shape_path, satellite, processing_level, product_type, start_date, end_date, cloud_cover, output_format='json', maxRecords = 15):
 
@@ -389,3 +418,40 @@ def filterSen2(sceneList, filterDate=True, filterID=True):
                 final_list.append(item)
                 
     return final_list
+
+def rebuildCropFolder(crop_folder):
+
+    if os.path.exists(crop_folder):
+        shutil.rmtree(crop_folder)
+        os.mkdir(crop_folder)
+        os.mkdir(os.path.join(crop_folder, "train"))
+        os.mkdir(os.path.join(crop_folder, "test"))
+        os.mkdir(os.path.join(crop_folder, "train", "img"))
+        os.mkdir(os.path.join(crop_folder, "train", "mask"))
+        os.mkdir(os.path.join(crop_folder, "test", "img"))
+        os.mkdir(os.path.join(crop_folder, "test", "mask"))
+    else:
+        os.mkdir(crop_folder)
+        os.mkdir(os.path.join(crop_folder, "img"))
+        os.mkdir(os.path.join(crop_folder, "mask"))
+        os.mkdir(os.path.join(crop_folder, "img", "train"))
+        os.mkdir(os.path.join(crop_folder, "img", "test"))
+        os.mkdir(os.path.join(crop_folder, "mask", "train"))
+        os.mkdir(os.path.join(crop_folder, "mask", "test"))
+    
+    return
+
+def rebuildPredFolder(pred_cfolder):
+    if os.path.exists(pred_cfolder):
+        shutil.rmtree(pred_cfolder)
+        os.mkdir(pred_cfolder)
+        os.mkdir(os.path.join(pred_cfolder, "full_img"))
+        os.mkdir(os.path.join(pred_cfolder, "img"))
+        os.mkdir(os.path.join(pred_cfolder, "mask"))
+    else:
+        os.mkdir(pred_cfolder)
+        os.mkdir(os.path.join(pred_cfolder, "full_img"))
+        os.mkdir(os.path.join(pred_cfolder, "img"))
+        os.mkdir(os.path.join(pred_cfolder, "mask"))
+
+    return

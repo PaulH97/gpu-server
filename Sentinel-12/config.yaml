@@ -22,7 +22,8 @@ model_parameter:
   patch_size: 128
   optimizer: Adam
   loss_function: binary_crossentropy
-  epochs: 50
+  epochs: 80
+  kfold: 5
 
 indizes: False
 
