@@ -5,11 +5,9 @@ from tools_model import dice_coef, dice_loss, load_img_as_array, load_trainData
 from sklearn.model_selection import train_test_split
 from unet import binary_unet
 from matplotlib import pyplot as plt
-from datagen import CustomImageGenerator
+from datagen import CustomImageGeneratorTrain, CustomImageGeneratorTest
 import tensorflow as tf
 import numpy as np
-import random
-import shutil
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -52,56 +50,62 @@ patch_xy = (patch_array.shape[0], patch_array.shape[1])
 b_count = patch_array.shape[-1]
 
 # Load images and masks with an custom data generator
-train_datagen = CustomImageGenerator(X_train, y_train, patch_xy, b_count)
-test_datagen = CustomImageGenerator(X_test, y_test, patch_xy, b_count)
+train_datagen = CustomImageGeneratorTrain(X_train, y_train, patch_xy, b_count)
+test_datagen = CustomImageGeneratorTest(X_test, y_test, patch_xy, b_count)
 
-# sanity check
-# batch_nr = random.randint(0, len(train_datagen))
-# X,y = train_datagen[batch_nr]
+# # sanity check
+# # batch_nr = random.randint(0, len(train_datagen))
+# # X,y = train_datagen[batch_nr]
 
-# for i in range(X.shape[0]):
+# # for i in range(X.shape[0]):
 
-#     plt.figure(figsize=(12,6))
-#     plt.subplot(121)
-#     plt.imshow(X[i][:,:,4])
-#     plt.subplot(122)
-#     plt.imshow(y[i])
-#     plt.show()
-#     plt.savefig("sanity_check{}.png".format(i)) 
+# #     plt.figure(figsize=(12,6))
+# #     plt.subplot(121)
+# #     plt.imshow(X[i][:,:,4])
+# #     plt.subplot(122)
+# #     plt.imshow(y[i])
+# #     plt.show()
+# #     plt.savefig("sanity_check{}.png".format(i)) 
 
-#Load model
-model = binary_unet(patch_xy[0], patch_xy[1], b_count)  
+# #Load model
+# model = binary_unet(patch_xy[0], patch_xy[1], b_count)  
 
-# metrics 
-model.compile(optimizer=optimizer, loss=loss_function, metrics=[dice_coef,
-                    tf.keras.metrics.Recall(name="recall"),
-                    tf.keras.metrics.Precision(name="precision"),
-                    tf.keras.metrics.BinaryIoU(name="iou")])
+# # metrics 
+# model.compile(optimizer=optimizer, loss=loss_function, metrics=[dice_coef,
+#                     tf.keras.metrics.Recall(name="recall"),
+#                     tf.keras.metrics.Precision(name="precision"),
+#                     tf.keras.metrics.BinaryIoU(name="iou")])
 
-# Model fit 
-#callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss")
-#log_dir = os.path.join(output_folder, "models", "logs", model_name) 
-#tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
-#checkpoint_path = os.path.join(output_folder, "models", "checkpoints", model_name)
-#checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="iou", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
+# # Model fit 
+# #callback = tf.keras.callbacks.EarlyStopping(monitor="val_loss")
+# #log_dir = os.path.join(output_folder, "models", "logs", model_name) 
+# #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
+# checkpoint_path = os.path.join(output_folder, "models", "checkpoints", model_name)
+# checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="dice_coef", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
 
-model.fit(train_datagen, verbose=1, epochs=epochs)
+# model.fit(train_datagen, verbose=1, epochs=epochs)
 
-# Save model for prediction
-model.save(model_path)
+# # Save model for prediction
+# model.load_weights(checkpoint_path)
 
-#model.load_weights(checkpoint_path)
-model.evaluate(test_datagen)
+# model.save(model_path)
+# model.evaluate(test_datagen)
 
-# pred_test = model.predict(test_datagen) # f.eg.(288,128,128,1)
-# pred_test = (pred_test > 0.5).astype(np.uint8) 
+# Predict test files
+model = tf.keras.models.load_model(model_path, compile=True, custom_objects={'dice_coef': dice_coef})
 
-# for i in range((test_datagen[1][1].shape[0])):
+pred_test = model.predict(test_datagen) # f.eg.(288,128,128,1)
+pred_test = (pred_test > 0.5).astype(np.uint8) 
 
-#     plt.figure(figsize=(12,6))
-#     plt.subplot(121)
-#     plt.imshow(test_datagen[0][1][i])
-#     plt.subplot(122)
-#     plt.imshow(pred_test[i])
-#     plt.show()
-#     plt.savefig("/home/hoehn/data/prediction/prediction{}.png".format(i)) 
+batch_size = test_datagen[0][1].shape[0]
+batch_nr = 9
+# test_datagen[0] = ((16,128,128,12),(16,128,128,1)) -> tupel of length 2
+for i in range(batch_size): 
+    
+    plt.figure(figsize=(12,6))
+    plt.subplot(121)
+    plt.imshow(test_datagen[batch_nr][1][i]) 
+    plt.subplot(122)
+    j = i+(batch_nr * batch_size)
+    plt.imshow(pred_test[j])
+    plt.savefig("/home/hoehn/data/prediction/prediction{}.png".format(i)) 

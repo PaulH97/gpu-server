@@ -1,4 +1,5 @@
 import os
+import shutil
 import yaml
 from glob import glob
 import rasterio
@@ -17,7 +18,10 @@ if os.path.exists("config.yaml"):
 
 tile_name = tile_folder.split("_")[-1]
 output_folder = os.path.join("/home/hoehn/data/prediction", tile_name)
-os.mkdir(output_folder)
+
+if os.path.exists(output_folder):
+    shutil.rmtree(output_folder)
+    os.mkdir(output_folder)
 
 bands_patches = {}
 

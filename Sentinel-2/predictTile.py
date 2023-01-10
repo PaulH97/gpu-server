@@ -6,6 +6,7 @@ import tensorflow as tf
 from tools_model import load_img_as_array, predictPatches, dice_coef
 from datagen import CustomImageGeneratorPrediction
 from glob import glob
+from matplotlib import pyplot as plt
 
 # Read data from config file
 if os.path.exists("config.yaml"):
