@@ -185,14 +185,14 @@ def savePatchesPredict(patches, output_folder):
 
     for idx in range(len(patches[band_names[0]])):
 
-            final = rasterio.open(os.path.join(img_out, f'img_{idx}.tif'),'w', driver='Gtiff',
-                            width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
-                            count=len(band_names),
-                            dtype=rasterio.float64)
+        final = rasterio.open(os.path.join(img_out, f'img_{idx}.tif'),'w', driver='Gtiff',
+                        width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
+                        count=len(band_names),
+                        dtype=rasterio.float64)
 
-            for band_nr, band_name in enumerate(band_names):
-                final.write(patches[band_name][idx][:,:,0],band_nr+1)
-            final.close()
+        for band_nr, band_name in enumerate(band_names):
+            final.write(patches[band_name][idx][:,:,0],band_nr+1)
+        final.close()
 
     return 
 
@@ -417,6 +417,29 @@ def filterSen12(sceneList, filterDate=True, filterID=True):
     return final_list
 
 def filterSen1(sceneList, filterDate=True, filterID=True):
+    sceneList = random.sample(sceneList, len(sceneList))
+    final_list = []
+
+    for item in sceneList:
+        date = item.split("_")[-2]
+        id = item.split("_")[-1]
+        if len(final_list) == 0:
+            final_list.append(item)
+        else:
+            count = 0
+            for i in final_list:
+                if filterDate:
+                    if date in i:
+                        count += 1
+                elif filterID:
+                    if id in i:
+                        count += 1
+            if count == 0:
+                final_list.append(item)
+                
+    return final_list
+
+def filterSen2(sceneList, filterDate=True, filterID=True):
     sceneList = random.sample(sceneList, len(sceneList))
     final_list = []
 

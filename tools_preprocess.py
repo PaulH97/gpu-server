@@ -253,6 +253,26 @@ def calculateIndizesSen2(bands_patches):
 
     return bands_patches
 
+def calculateIndizesSen1(bands_patches):
+
+    cr_list = [] 
+    cr_list_norm = []
+
+    for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
+
+        vv = bands_patches['VV'][idx]
+        vh = bands_patches['VH'][idx]
+        cr = np.nan_to_num(vh/vv)
+        cr_list.append(cr)
+
+    [cr_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in cr_list] 
+  
+    bands_patches["CR"] = cr_list_norm
+
+    print("Calculated CR")
+
+    return bands_patches
+
 def imageAugmentation(images_path, masks_path, seed):
 
     def rotation90(image, seed):
@@ -395,6 +415,30 @@ def filterSen12(sceneList, filterDate=True, filterID=True):
                 final_list.append(item)
                 
     return final_list
+def filterSen1(sceneList, filterDate=True, filterID=True):
+    sceneList = random.sample(sceneList, len(sceneList))
+    final_list = []
+
+    for item in sceneList:
+        date = item.split("_")[-2]
+        id = item.split("_")[-1]
+        if len(final_list) == 0:
+            final_list.append(item)
+        else:
+            count = 0
+            for i in final_list:
+                if filterDate:
+                    if date in i:
+                        count += 1
+                elif filterID:
+                    if id in i:
+                        count += 1
+            if count == 0:
+                final_list.append(item)
+                
+    return final_list
+
+
 
 def filterSen2(sceneList, filterDate=True, filterID=True):
     sceneList = random.sample(sceneList, len(sceneList))

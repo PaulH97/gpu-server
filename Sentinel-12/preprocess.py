@@ -25,9 +25,9 @@ if os.path.exists("config.yaml"):
         patch_size = data['model_parameter']['patch_size']
         output_folder = data["output_folder"]
         indizes = data["indizes"]
+
         # data for prediction
         sentinel12_pred = data['prediction']["data"]['Sentinel2']
-        solar_path_pred = data['prediction']["data"]["solar_path"]
 
         seed = data["seed"]
 
@@ -45,8 +45,6 @@ else:
 pred_cfolder = os.path.join(output_folder, "prediction", "crops")
 rebuildPredFolder(pred_cfolder)
 
- 
-    
 file = open("/home/hoehn/data/output/Sentinel-12/sentinel12_tiles.txt", "r")
 lines = file.readlines()
 
@@ -141,7 +139,7 @@ for idx1, tile in enumerate(Sen12_tiles):
         bands_patches[band_name] = patchifyRasterAsArray(r_array_norm, patch_size)
     
     # Calculate important indizes
-    if indizes:
+    if indizes and idx1 != len(Sen12_tiles)-1:
         bands_patches = calculateIndizesSen12(bands_patches)
 
     # Save patches in folder as raster file
@@ -168,7 +166,11 @@ mask_list.sort()
 
 X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.10, shuffle=True, random_state = seed)
 
+print("Files in train folder: ", len(os.listdir(images_path)))
+print("Files in test folder: ", len(os.listdir(masks_path)))
+
 # Move test data in test directory
+print("Move test data in test directory - make sure that no test data is in the training process")
 for idx in range(len(X_test)):
     X_test_src = X_test[idx]
     X_test_dst = "/".join(["test" if i == "train" else i for i in X_test[idx].split(os.sep)]) 
@@ -177,4 +179,9 @@ for idx in range(len(X_test)):
     shutil.move(X_test_src, X_test_dst)
     shutil.move(y_test_src, y_test_dst)
 
+print("Files in train folder: ", len(os.listdir(images_path)))
+print("Files in test folder: ", len(os.listdir(masks_path)))
+
 imageAugmentation(X_train, y_train, seed)
+
+print("Files in train folder after image augmentation: ", len(os.listdir(images_path)))
