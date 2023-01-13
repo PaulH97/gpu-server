@@ -1,3 +1,5 @@
+import sys 
+sys.path.append("/home/hoehn/code/scripts")
 import os
 from glob import glob
 import yaml
@@ -106,7 +108,7 @@ for idx1, tile in enumerate(Sen12_tiles):
         if idx2 != (len(sen_mask)-1):
                   
             a,b = 0,1
-            c,d = np.percentile(r_array, [0.01, 99.9])
+            c,d = np.percentile(r_array, [0.1, 99.9])
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0
@@ -131,7 +133,7 @@ for idx1, tile in enumerate(Sen12_tiles):
             # plt.hist(r_array_norm.flatten(), bins = bins)
             # plt.ylabel('Number of values')
             # plt.xlabel('DN')
-            # plt.savefig("Histo.jpg")
+            # plt.savefig(f"Histo{band_name}.jpg")
 
         else:
             r_array_norm = r_array
@@ -164,13 +166,11 @@ mask_list = glob("{}/*.tif".format(masks_path))
 img_list.sort()
 mask_list.sort()
 
-X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.10, shuffle=True, random_state = seed)
-
-print("Files in train folder: ", len(os.listdir(images_path)))
-print("Files in test folder: ", len(os.listdir(masks_path)))
+X_train, X_test, y_train, y_test = train_test_split(img_list, mask_list, test_size = 0.20, shuffle=True, random_state = seed)
 
 # Move test data in test directory
 print("Move test data in test directory - make sure that no test data is in the training process")
+
 for idx in range(len(X_test)):
     X_test_src = X_test[idx]
     X_test_dst = "/".join(["test" if i == "train" else i for i in X_test[idx].split(os.sep)]) 
@@ -179,9 +179,12 @@ for idx in range(len(X_test)):
     shutil.move(X_test_src, X_test_dst)
     shutil.move(y_test_src, y_test_dst)
 
-print("Files in train folder: ", len(os.listdir(images_path)))
-print("Files in test folder: ", len(os.listdir(masks_path)))
+print("Files in training/img folder: ", len(os.path.dirname(X_train[0])))
+print("Files in test/img folder: ", len(os.path.dirname(y_test[0])))
 
-imageAugmentation(X_train, y_train, seed)
+# Image Augmentation 
+X_augFolder, y_augFolder = imageAugmentation(X_train, y_train, seed)  
 
-print("Files in train folder after image augmentation: ", len(os.listdir(images_path)))
+print("Augmented masks are stored in folder: ", X_augFolder)
+print("Augmented images are stored in folder: ", y_augFolder)
+print("Please insert these folder paths in config.yaml!")

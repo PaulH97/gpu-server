@@ -273,7 +273,7 @@ def calculateIndizesSen1(bands_patches):
 
     return bands_patches
 
-def imageAugmentation(images_path, masks_path, seed):
+def imageAugmentation2(images_path, masks_path, seed):
 
     def rotation90(image, seed):
         random.seed(seed)
@@ -348,6 +348,104 @@ def imageAugmentation(images_path, masks_path, seed):
             #     plt.show()
       
     return 
+
+def imageAugmentation(X_train, y_train, seed):
+
+    def rotation90(image, seed):
+        random.seed(seed)
+        r_image = np.rot90(image)
+        return r_image
+
+    def h_flip(image, seed):
+        random.seed(seed)
+        hflipped_img= np.fliplr(image)
+        return hflipped_img
+
+    def v_flip(image, seed):
+        random.seed(seed)
+        vflipped_img= np.flipud(image)
+        return vflipped_img
+
+    def v_transl(image, seed):
+        random.seed(seed)
+        n_pixels = random.randint(-image.shape[0],image.shape[1])
+        vtranslated_img = np.roll(image, n_pixels, axis=0)
+        return vtranslated_img
+
+    def h_transl(image, seed):
+        random.seed(seed)
+        n_pixels = random.randint(-image.shape[0],image.shape[0])
+        htranslated_img = np.roll(image, n_pixels, axis=1)
+        return htranslated_img
+
+    transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip, 'vertical shift': v_transl, 'horizontal shift': h_transl}         
+
+    # Create folder for augmented images - so that they got not mixed up with the original images
+    augImg_folder = os.path.join("/".join(X_train[0].split("/")[:-2]), "img_aug")
+    augMask_folder = os.path.join("/".join(y_train[0].split("/")[:-2]), "mask_aug")
+
+    if not os.path.isdir(augImg_folder):
+        os.makedirs(augImg_folder)
+    else:
+        for f in os.listdir(augImg_folder):
+            os.remove(os.path.join(augImg_folder, f))
+    
+    if not os.path.isdir(augMask_folder):
+        os.makedirs(augMask_folder)
+    else:
+        for f in os.listdir(augMask_folder):
+            os.remove(os.path.join(augMask_folder, f))
+    
+    X_train.sort()
+    y_train.sort()    
+
+    for i in range(len(y_train)): 
+        
+        image = X_train[i]
+        mask = y_train[i]
+
+        original_image = load_img_as_array(image)
+        original_mask = load_img_as_array(mask)
+        
+        for idx, transformation in enumerate(list(transformations)): 
+
+            transformed_image = transformations[transformation](original_image, seed)
+            transformed_mask = transformations[transformation](original_mask, seed)
+
+            new_img_name = image.split("/")[-1].split(".")[0] + "_aug{}.tif".format(idx)
+            new_mask_name = mask.split("/")[-1].split(".")[0] + "_aug{}.tif".format(idx)
+            
+            new_image_path= os.path.join(augImg_folder, new_img_name)
+            new_mask_path = os.path.join(augMask_folder, new_mask_name)
+
+            new_img = rasterio.open(new_image_path,'w', driver='Gtiff',
+                        width=transformed_image.shape[0], height=transformed_image.shape[1],
+                        count=original_image.shape[-1],
+                        dtype=rasterio.float64)
+            
+            for band in range(transformed_image.shape[-1]-1):
+                new_img.write(transformed_image[:,:,band], band+1)
+            new_img.close() 
+            
+            tiff.imwrite(new_mask_path, transformed_mask)
+            
+            # if i == 25: 
+            #     rows, cols = 2, 2
+            #     plt.figure(figsize=(12,12))
+            #     plt.subplot(rows, cols, 1)
+            #     plt.imshow(original_image[:,:,:3])
+            #     plt.subplot(rows, cols, 2)
+            #     plt.imshow(transformed_image[:,:,:3])
+            #     plt.subplot(rows, cols, 3)
+            #     plt.imshow(original_mask)
+            #     plt.subplot(rows, cols, 4)
+            #     plt.imshow(transformed_mask)
+            #     plt.show()
+        
+    return augImg_folder, augMask_folder 
+
+
+
 
 def ScenceFinderAOI(shape_path, satellite, processing_level, product_type, start_date, end_date, cloud_cover, output_format='json', maxRecords = 15):
 

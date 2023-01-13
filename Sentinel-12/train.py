@@ -1,6 +1,5 @@
 import sys
 sys.path.append("/home/hoehn/code/scripts")
-
 import os
 from glob import glob
 import yaml
@@ -36,15 +35,13 @@ model_path = os.path.join(output_folder, "models", model_name)
 
 # Load training + test data from local folder and sort paths
 X_train, X_test, y_train, y_test = load_trainData(output_folder, indizes)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.10, shuffle=True, random_state = seed)
-
-import pdb 
-pdb.set_trace()
 
 X_train.sort()
 X_test.sort()
 y_train.sort()
 y_test.sort()
+
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.10, shuffle=True, random_state = seed)
 
 # Get parameter for ImageGenerator 
 patch_array = load_img_as_array(X_train[0])
@@ -56,25 +53,25 @@ train_datagen = CustomImageGeneratorTrain(X_train, y_train, patch_xy, b_count)
 val_datagen = CustomImageGeneratorTrain(X_val, y_val, patch_xy, b_count)
 test_datagen = CustomImageGeneratorTest(X_test, y_test, patch_xy, b_count)
 
-print("Size of train data: ", len(train_datagen))
-print("Size of val data: ", len(val_datagen))
-print("Size of test data: ", len(test_datagen))
+print("Batchsize of train data: ", len(train_datagen))
+print("Batchsize of val data: ", len(val_datagen))
+print("batchsize of test data: ", len(test_datagen))
 
 # sanity check
 # batch_nr = random.randint(0, len(train_datagen))
 # X,y = train_datagen[batch_nr]
 
 # for i in range(X.shape[0]):
-
+    
 #     plt.figure(figsize=(12,6))
 #     plt.subplot(121)
-#     plt.imshow(X[i][:,:,4])
+#     plt.imshow(X[i][:,:,:3])
 #     plt.subplot(122)
 #     plt.imshow(y[i])
 #     plt.show()
 #     plt.savefig("sanity_check{}.png".format(i)) 
 
-# #Load model
+# Load model
 model = binary_unet(patch_xy[0], patch_xy[1], b_count)  
 # model = build_unet(patch_xy[0], patch_xy[1], b_count)
 
@@ -89,25 +86,20 @@ model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=loss_
 #log_dir = os.path.join(output_folder, "models", "logs", model_name) 
 #tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 checkpoint_path = os.path.join(output_folder, "models", "checkpoints", model_name)
-checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_recall", mode='max', verbose=1, save_best_only=True, save_weights_only=False)
+checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_recall", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
 
-model.fit(train_datagen, validation_data=val_datagen, verbose=1, epochs=epochs)
-
-print("test model first time")
-model.evaluate(test_datagen)
+model.fit(train_datagen, validation_data=val_datagen, verbose=1, epochs=epochs, callbacks=[checkpoint_callback])
 
 # Save model for prediction
-# model.load_weights(checkpoint_path)
-# model.save(model_path)
-# print("test model second time")
-# model.evaluate(test_datagen)
+model.load_weights(checkpoint_path)
+model.save(model_path)
 
-import pdb
-pdb.set_trace()
+print("test model second time")
+model.evaluate(test_datagen)
 
 # Predict test files
 # model = tf.keras.models.load_model(model_path, compile=True, custom_objects={'dice_coef': dice_coef})
-model = tf.keras.models.load_model(model_path, compile=True)
+# model = tf.keras.models.load_model(model_path, compile=True)
 
 pred_test = model.predict(test_datagen) # f.eg.(288,128,128,1)
 pred_test = (pred_test > 0.5).astype(np.uint8) 

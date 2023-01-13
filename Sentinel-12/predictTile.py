@@ -1,3 +1,5 @@
+import sys 
+sys.path.append("/home/hoehn/code/scripts")
 import os
 import yaml
 import numpy as np

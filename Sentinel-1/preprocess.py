@@ -97,7 +97,7 @@ for idx1,tile in enumerate(Sen1_tiles):
         if idx2 != (len(sen_mask)-1):
             
             a,b = 0,1
-            c,d = np.percentile(r_array, [0.01, 99.9])
+            c,d = np.percentile(r_array, [0.1, 99.9])
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0
