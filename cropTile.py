@@ -4,7 +4,7 @@ import yaml
 from glob import glob
 import rasterio
 import numpy as np
-from tools_preprocess import resampleRaster, patchifyRasterAsArray, calculateIndizesSen12, savePatchesPredict
+from tools_preprocess import resampleRaster, patchifyRasterAsArray, calculateIndizesSen12, calculateIndizesSen2, calculateIndizesSen1, savePatchesFullImg
 
 # Read data from config file
 if os.path.exists("config.yaml"):
@@ -13,10 +13,12 @@ if os.path.exists("config.yaml"):
         data = yaml.load(f, Loader=yaml.FullLoader)
         patch_size = data['model_parameter']['patch_size']
         indizes = data["indizes"]
-        sen1_folder = data['prediction']["data"]['Sentinel1']
-        sen2_folder = data['prediction']["data"]['Sentinel2']
+        sen1_folder = data['prediction']['Sentinel1']
+        sen2_folder = data['prediction']['Sentinel2']
         sen1_paths = glob("{}/*.tif".format(sen1_folder))
         sen2_paths = glob("{}/*.tif".format(sen2_folder))
+        dir_folder = data["output_folder"]
+        dir_name = dir_folder.split("/")[-1]
 
 tile_name = sen2_folder.split("_")[-1]
 output_folder = os.path.join("/home/hoehn/data/prediction", tile_name)
@@ -25,9 +27,16 @@ if os.path.exists(output_folder):
     shutil.rmtree(output_folder)
     os.mkdir(output_folder)
 
-bands_patches = {}
+if dir_name == "Sentinel-12":
+    sentinel_paths = sen1_paths + sen2_paths # VH VV B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A
 
-sentinel_paths = sen1_paths + sen2_paths # VH VV B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A
+elif dir_name == "Sentinel-2":
+    sentinel_paths = sen2_paths # B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A
+
+else:
+    sentinel_paths = sen1_paths # VH VV 
+
+bands_patches = {}
 
 for idx, band in enumerate(sentinel_paths):
 
@@ -54,6 +63,11 @@ for idx, band in enumerate(sentinel_paths):
     bands_patches[band_name] = patchifyRasterAsArray(r_array_norm, patch_size)
 
 if indizes:
-    bands_patches = calculateIndizesSen12(bands_patches)
+    if dir_name == "Sentinel-12":
+        bands_patches = calculateIndizesSen12(bands_patches)
+    elif dir_name == "Sentinel-2":
+        bands_patches = calculateIndizesSen2(bands_patches)
+    else:
+        bands_patches = calculateIndizesSen1(bands_patches)
 
-patches_path = savePatchesPredict(bands_patches, output_folder)
+patches_path = savePatchesFullImg(bands_patches, output_folder)

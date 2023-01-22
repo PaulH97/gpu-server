@@ -17,31 +17,25 @@ def load_img_as_array(path):
     # img_array = np.nan_to_num(img_array)
     return img_array
 
-def dice_coef(y_true, y_pred):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    union = K.sum(y_true_f) + K.sum(y_pred_f)
-    coef = (2. * intersection) / union + K.epsilon()
-    return coef
+# def dice_metric(y_pred, y_true, smooth=1e-5):
+#     intersection = tf.reduce_sum(y_pred * y_true)
+#     union = tf.reduce_sum(y_pred) + tf.reduce_sum(y_true)
+#     dice = (2* intersection + smooth) / union + smooth
+#     dice = tf.reduce_mean(dice, name='dice_coe')
+#     return dice
 
-def dice_loss(y_true, y_pred):
-    y_true_f = tf.reshape(y_true, [-1])
-    y_pred_f = tf.reshape(y_pred, [-1])
-    intersection = tf.reduce_sum(y_true_f * y_pred_f)
-    union = tf.reduce_sum(y_true_f) + tf.reduce_sum(y_pred_f)
-    dice = 2 * intersection / (union + K.epsilon())
-    loss = 1 - dice 
-    return loss
+#Dice metric can be a great metric to track accuracy of semantic segmentation.
+def dice_metric(y_pred, y_true):
+    intersection = K.sum(K.sum(K.abs(y_true * y_pred), axis=-1))
+    union = K.sum(K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1))
+    return 2*intersection / union
 
-def jaccard_distance_coef(y_true, y_pred):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(K.abs(y_true_f * y_pred_f))
-    return (intersection + 1.0) / (K.sum(y_true_f) + K.sum(y_pred_f) - intersection + 1.0)
-
-def jaccard_distance_loss(y_true, y_pred, smooth=100):
-    return -jaccard_distance_coef(y_true, y_pred)
+def jaccard_metric(y_pred, y_true, smooth=1e-5):
+    intersection = tf.reduce_sum(y_pred * y_true)
+    union = tf.reduce_sum(y_pred*y_pred) + tf.reduce_sum(y_true*y_true)
+    dice = (intersection + smooth) / (union + smooth)
+    dice = tf.reduce_mean(dice, name='dice_coe')
+    return dice
 
 def predictPatches(model, predict_datagen, raster_path, output_folder):
 
@@ -89,7 +83,6 @@ def append_new_line(file_name, text_to_append):
         # Append text at the end of file
         file_object.write(text_to_append)
 
-
 def createMetrics(file, metrics_dict, name_data):
 
     sum = {}
@@ -120,6 +113,11 @@ def load_trainData(output_folder, idx):
         y_train = glob("{}/crops/no_idx/train/mask/*.tif".format(output_folder))
         X_test = glob("{}/crops/no_idx/test/img/*.tif".format(output_folder))
         y_test = glob("{}/crops/no_idx/test/mask/*.tif".format(output_folder))
+
+    X_train.sort()
+    X_test.sort()
+    y_train.sort()
+    y_test.sort()
 
     return X_train, X_test, y_train, y_test
 

@@ -1,9 +1,11 @@
+import sys 
+sys.path.append("/home/hoehn/code/scripts")
 import os
 import yaml
 import numpy as np
 from glob import glob
 import tensorflow as tf 
-from tools_model import load_img_as_array, predictPatches, dice_coef
+from tools_model import load_img_as_array, predictPatches
 from datagen import CustomImageGeneratorPrediction
 from glob import glob
 from matplotlib import pyplot as plt
@@ -16,15 +18,13 @@ if os.path.exists("config.yaml"):
 
         patch_size = data['model_parameter']['patch_size']
         indizes = data["indizes"]
-        tile_folder = data['prediction']["data"]['Sentinel1']
+        tile_folder = data['prediction']['Sentinel2']
         sentinel_paths = glob("{}/*.tif".format(tile_folder))
-        model_path = data["prediction"]["model"]["path"]
+        output_folder = data["output_folder"]
+        prediction_folder = os.path.join(output_folder, "prediction")
+        best_model = data["evaluation"]["best_model"]
 
-tile_name = tile_folder.split("_")[-1]
-output_folder = os.path.join("/home/hoehn/data/prediction", tile_name)
-
-model = tf.keras.models.load_model(model_path, compile=False, custom_objects={'dice_coef': dice_coef})
-patches_path = glob(r"{}/full_img/*.tif".format(output_folder))
+patches_path = glob(r"{}/crops/full_img/*.tif".format(prediction_folder))
 patches_path = sorted(patches_path, key = lambda x: int(x.split("_")[-1].split(".")[0]))
 
 patch_array = load_img_as_array(patches_path[0])
@@ -33,18 +33,23 @@ b_count = patch_array.shape[-1]
 
 predict_datagen = CustomImageGeneratorPrediction(patches_path, patch_xy, b_count)
 
-predictPatches(model, predict_datagen, sentinel_paths[4], output_folder)
+model = tf.keras.models.load_model(best_model, compile=False) # custom_objects={'dice_coef': dice_coef}
+
+predictPatches(model, predict_datagen, sentinel_paths[4], prediction_folder)
 
 # # Get model metrics on test data
 # from sklearn.metrics import jaccard_score, f1_score, accuracy_score
 
-# tile_pred = sentinel2.split("_")[-1] # 32UPV
-# mask_path = glob("/home/hoehn/data/output/Sentinel-2/masks/*{}.tif".format(tile_pred))[0]
-# mask = load_img_as_array(mask_path)
-# mask = mask[:10880,:10880,:]
-
 # flat_truth = np.concatenate(mask).flatten()
-# flat_pred = np.concatenate(prediction).flatten()
+# flat_pred = np.concatenate(pred).flatten()
+
+# # cm = confusion_matrix(flat_truth, flat_pred, normalize='true')
+
+# # fig, ax = plot_confusion_matrix(conf_mat=cm ,  figsize=(8,8))
+# # plt.title('Confusion matrix')
+# # plt.xticks(range(2), ['Normal','Solar'], fontsize=10)
+# # plt.yticks(range(2), ['Normal','Solar'], fontsize=10)
+# # plt.savefig(model_name + "cm.png") 
 
 # jaccard = jaccard_score(flat_truth, flat_pred)
 # f1 = f1_score(flat_truth, flat_pred,)

@@ -3,7 +3,7 @@ sys.path.append("/home/hoehn/code/scripts")
 import os
 from glob import glob
 import yaml
-from tools_model import dice_coef, dice_loss, load_img_as_array, load_trainData
+from tools_model import load_img_as_array, load_trainData, dice_metric, jaccard_distance_loss
 from sklearn.model_selection import train_test_split
 from unet import binary_unet, build_unet
 from matplotlib import pyplot as plt
@@ -29,17 +29,12 @@ if os.path.exists("config.yaml"):
         seed = data["seed"]
 
 # Use patches as trainings data for model
-model_name = "Ad_bc_5_idx"
+model_name = "Ad_fl_100"
 
 model_path = os.path.join(output_folder, "models", model_name)
 
 # Load training + test data from local folder and sort paths
 X_train, X_test, y_train, y_test = load_trainData(output_folder, indizes)
-
-X_train.sort()
-X_test.sort()
-y_train.sort()
-y_test.sort()
 
 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.10, shuffle=True, random_state = seed)
 
@@ -76,7 +71,7 @@ model = binary_unet(patch_xy[0], patch_xy[1], b_count)
 # model = build_unet(patch_xy[0], patch_xy[1], b_count)
 
 # metrics 
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=loss_function, metrics=["accuracy",
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=jaccard_distance_loss, metrics=[dice_metric,
                     tf.keras.metrics.Recall(name="recall"),
                     tf.keras.metrics.Precision(name="precision"),
                     tf.keras.metrics.BinaryIoU(name="iou")])

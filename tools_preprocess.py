@@ -11,8 +11,36 @@ from matplotlib import pyplot as plt
 import requests
 import geopandas as gpd
 import shutil
+from glob import glob
 
 np.seterr(divide='ignore', invalid='ignore')
+
+def getTileName(tile_folder, model_id):
+
+    if model_id == "Sentinel-12":   
+        # get tile name and path for each band
+        tile_name = '_'.join(tile_folder[0].split("_")[-2:])
+    else:
+        # remove \n from file path
+        tile_folder = tile_folder.strip()
+        # get tile name and path for each band
+        tile_name = '_'.join(tile_folder.split("_")[-2:])
+
+    return tile_name
+
+def getBandPaths(tile_folder, model_id):
+
+    if model_id == "Sentinel-12":   
+        # get tile name and path for each band
+        sen_path =  glob(f"{tile_folder[0]}/*.tif") + glob(f"{tile_folder[1]}/*.tif")
+        sen_path.sort() #  B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A VH VV
+    else:
+        # remove \n from file path
+        tile_folder = tile_folder.strip()
+        sen_path = glob(f"{tile_folder}/*.tif") 
+        sen_path.sort() # B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A  # VH VV
+
+    return sen_path
 
 def load_img_as_array(path):
     # read img as array 
@@ -69,10 +97,7 @@ def patchifyRasterAsArray(array, patch_size):
     
     return result
 
-def savePatchesTrain(patches, output_folder, seed, raster_muster):
-
-    mask_out = os.path.join(output_folder, "train", "mask") 
-    img_out = os.path.join(output_folder, "train", "img") 
+def savePatchesPV(patches, img_out, mask_out, seed, raster_muster):
     
     mask_dict = {k: v for k, v in patches.items() if k.startswith("3")}
     for k in mask_dict.keys():
@@ -168,24 +193,16 @@ def savePatchesTrain(patches, output_folder, seed, raster_muster):
                 final.write(patches[band_name][idx][:,:,0],band_nr+1)
             final.close()
         
-    return img_out, mask_out
+    return 
 
-def savePatchesPredict(patches, output_folder):
-
-    img_out = os.path.join(output_folder, "full_img") 
-    
-    if not os.path.exists(img_out):
-        os.makedirs(img_out)
-    else:
-        for f in os.listdir(img_out):
-            os.remove(os.path.join(img_out, f))
+def savePatchesFullImg(patches, output_folder, tile_name):
     
     band_names = list(patches.keys())
     band_names.sort()
 
     for idx in range(len(patches[band_names[0]])):
 
-        final = rasterio.open(os.path.join(img_out, f'img_{idx}.tif'),'w', driver='Gtiff',
+        final = rasterio.open(os.path.join(output_folder, f'img_{idx}.tif'),'w', driver='Gtiff',
                         width=patches[band_names[0]][0].shape[0], height=patches[band_names[0]][0].shape[1],
                         count=len(band_names),
                         dtype=rasterio.float64)
@@ -223,6 +240,10 @@ def calculateIndizesSen12(bands_patches):
     bands_patches["CR"] = cr_list_norm
     bands_patches["NDVI"] = ndvi_list_norm
     bands_patches["NDWI"] = ndwi_list_norm
+
+    print("Calculated CR")
+    print("Calculated NDVI")
+    print("Calculated NDWI")
 
     return bands_patches
 
@@ -444,9 +465,6 @@ def imageAugmentation(X_train, y_train, seed):
         
     return augImg_folder, augMask_folder 
 
-
-
-
 def ScenceFinderAOI(shape_path, satellite, processing_level, product_type, start_date, end_date, cloud_cover, output_format='json', maxRecords = 15):
 
     start_date = start_date.replace(":", "%3A") 
@@ -513,6 +531,7 @@ def filterSen12(sceneList, filterDate=True, filterID=True):
                 final_list.append(item)
                 
     return final_list
+
 def filterSen1(sceneList, filterDate=True, filterID=True):
     sceneList = random.sample(sceneList, len(sceneList))
     final_list = []
@@ -535,8 +554,6 @@ def filterSen1(sceneList, filterDate=True, filterID=True):
                 final_list.append(item)
                 
     return final_list
-
-
 
 def filterSen2(sceneList, filterDate=True, filterID=True):
     sceneList = random.sample(sceneList, len(sceneList))
