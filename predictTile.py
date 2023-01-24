@@ -1,11 +1,9 @@
-import sys 
-sys.path.append("/home/hoehn/code/scripts")
 import os
 import yaml
 import numpy as np
 from glob import glob
 import tensorflow as tf 
-from tools_model import load_img_as_array, predictPatches
+from tools_model import load_img_as_array, predictPatches, dice_metric
 from datagen import CustomImageGeneratorPrediction
 from glob import glob
 from matplotlib import pyplot as plt
@@ -22,7 +20,8 @@ if os.path.exists("config.yaml"):
         sentinel_paths = glob("{}/*.tif".format(tile_folder))
         output_folder = data["output_folder"]
         prediction_folder = os.path.join(output_folder, "prediction")
-        best_model = data["evaluation"]["best_model"]
+        model_name = data["model_parameter"]["name"]
+        best_model = os.path.join(output_folder, "models", model_name, "best_model")
 
 patches_path = glob(r"{}/crops/full_img/*.tif".format(prediction_folder))
 patches_path = sorted(patches_path, key = lambda x: int(x.split("_")[-1].split(".")[0]))
@@ -33,7 +32,7 @@ b_count = patch_array.shape[-1]
 
 predict_datagen = CustomImageGeneratorPrediction(patches_path, patch_xy, b_count)
 
-model = tf.keras.models.load_model(best_model, compile=False) # custom_objects={'dice_coef': dice_coef}
+model = tf.keras.models.load_model(best_model, compile=False, custom_objects={'dice_metric': dice_metric})  
 
 predictPatches(model, predict_datagen, sentinel_paths[4], prediction_folder)
 

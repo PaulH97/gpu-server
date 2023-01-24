@@ -38,7 +38,7 @@ def getBandPaths(tile_folder, model_id):
         # remove \n from file path
         tile_folder = tile_folder.strip()
         sen_path = glob(f"{tile_folder}/*.tif") 
-        sen_path.sort() # B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A  # VH VV
+        sen_path.sort() # B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A or VH VV
 
     return sen_path
 

@@ -58,33 +58,34 @@ if dir_name == "Sentinel-12":
     for line in sen_lines:
         line.strip()
         sen_tiles.append(ast.literal_eval(line))
-    sen_tiles = sen_tiles + [sentinel12_pred]     
-
+    sen_tiles = sen_tiles + [sentinel12_pred] 
+    bands_dict = {"VH":[], "VV": [], "B11": [], "B12": [], "B2": [], "B3": [], "B4": [], "B5": [], "B6": [], "B7": [], "B8": [], "B8A": []}
+    
 elif dir_name == "Sentinel-2":
     sen_tiles = sen_lines + [sentinel2_pred]
+    sen_tiles = [tile.strip() for tile in sen_tiles]
+    bands_dict = {"B11": [], "B12": [], "B2": [], "B3": [], "B4": [], "B5": [], "B6": [], "B7": [], "B8": [], "B8A": []}
+
 else:
     sen_tiles = sen_lines + [sentinel1_pred]
+    sen_tiles = [tile.strip() for tile in sen_tiles]
+    bands_dict = {"VH":[], "VV": []}
 
 [print(tile) for tile in sen_tiles]
 
+# ----------------------------- Normalization parameters -------------------------------------------
 print("Start with tile calculating normalization parameter for each band")
 
-# Find global normalization variables 
-bands_dict = {"VH":[], "VV": [], "B11": [], "B12": [], "B2": [], "B3": [], "B4": [], "B5": [], "B6": [], "B7": [], "B8": [], "B8A": []}
-
 for tile_folder in sen_tiles:
-
     sen_path = getBandPaths(tile_folder, dir_name)
 
     for band in sen_path:
-
         band_name = os.path.basename(band).split(".")[0].split("_")[-1]
         bands_dict[band_name].append(load_img_as_array(band))
 
 bands_scale = {}
 
 for key, value in bands_dict.items():
-
     band_flatten = np.concatenate([x.flatten() for x in value]) # one big flattened array of each band 
     c,d = np.nanpercentile(band_flatten, [0.1, 99.9]) # find normailzation parameters for each band
     bands_scale[key] = [c,d]
@@ -132,7 +133,6 @@ for idx1, tile in enumerate(sen_tiles):
                   
             a,b = 0,1
             c,d = bands_scale[band_name]
-            print("c: {} , d: {}".format(c,d))
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0

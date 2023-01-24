@@ -78,18 +78,19 @@ for train_index, val_index in kf.split(X_train):
     val_datagen = CustomImageGeneratorTrain(X_val_aug, y_val_aug, patch_xy, b_count)
 
     # sanity check
-    batch_nr = random.randint(0, len(train_datagen))
-    X,y = train_datagen[batch_nr] # train_datagen[0] = ((16,128,128,12),(16,128,128,1)) -> tupel
-    
-    for i in range(X.shape[0]):
+    if fold_var == 1: 
+        batch_nr = random.randint(0, len(train_datagen))
+        X,y = train_datagen[batch_nr] # train_datagen[0] = ((16,128,128,12),(16,128,128,1)) -> tupel
         
-        plt.figure(figsize=(12,6))
-        plt.subplot(121)
-        plt.imshow(X[i][:,:,2:5]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... 
-        plt.subplot(122)
-        plt.imshow(y[i])
-        plt.show()
-        plt.savefig(os.path.join(output_folder, "crops/sanity_check{}.png".format(i))) 
+        for i in range(X.shape[0]):
+            
+            plt.figure(figsize=(12,6))
+            plt.subplot(121)
+            plt.imshow(X[i][:,:,2:5]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... 
+            plt.subplot(122)
+            plt.imshow(y[i])
+            plt.show()
+            plt.savefig(os.path.join(output_folder, "crops/sanity_check{}.png".format(i))) 
 
     #Load model
     model = binary_unet(patch_xy[0], patch_xy[1], b_count)  
@@ -99,7 +100,8 @@ for train_index, val_index in kf.split(X_train):
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
     checkpoint_path = os.path.join(model_dir, "checkpoints", f"best_weights_k{fold_var}.h5")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_dice_metric", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
-
+    
+    # tf.keras.losses.BinaryCrossentropy() or BinaryFocalLoss(gamma=2)
     # metrics 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.BinaryCrossentropy(), metrics=[
         "accuracy",
@@ -123,9 +125,6 @@ for train_index, val_index in kf.split(X_train):
     tf.keras.backend.clear_session()
 
     fold_var += 1
-
-    import pdb 
-    pdb.set_trace()
 
 file = os.path.join(model_dir, "metrics.txt")
 if os.path.exists(file):
