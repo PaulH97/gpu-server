@@ -100,7 +100,8 @@ for train_index, val_index in kf.split(X_train):
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
     checkpoint_path = os.path.join(model_dir, "checkpoints", f"best_weights_k{fold_var}.h5")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_dice_metric", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
-    
+    earlyStop_callback = tf.keras.callbacks.EarlyStopping(monitor="val_dice_metric", mode="max", verbose=1, patience=10)
+
     # tf.keras.losses.BinaryCrossentropy() or BinaryFocalLoss(gamma=2)
     # metrics 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.BinaryCrossentropy(), metrics=[
@@ -110,7 +111,7 @@ for train_index, val_index in kf.split(X_train):
         tf.keras.metrics.Precision(name="precision"),
         tf.keras.metrics.BinaryIoU(name="iou")])
 
-    model.fit(train_datagen, validation_data=val_datagen, verbose=1, epochs=epochs, callbacks=[checkpoint_callback, tensorboard_callback])
+    model.fit(train_datagen, validation_data=val_datagen, verbose=1, epochs=epochs, callbacks=[checkpoint_callback, tensorboard_callback, earlyStop_callback])
     model.load_weights(checkpoint_path)
     
     print("Evaluate on validation data")
