@@ -150,7 +150,8 @@ def imageAugmentation(X_train, y_train, seed):
         htranslated_img = np.roll(image, n_pixels, axis=1)
         return htranslated_img
 
-    transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip, 'vertical shift': v_transl, 'horizontal shift': h_transl}         
+    #transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip, 'vertical shift': v_transl, 'horizontal shift': h_transl}         
+    transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip}         
 
     # Create folder for augmented images - so that they got not mixed up with the original images
     augImg_folder = os.path.join("/".join(X_train[0].split("/")[:-2]), "img_aug")
@@ -235,13 +236,13 @@ def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
 
     for img in X_train:
         img_name = os.path.basename(img).split(".")[0]
-        for i in range(5):
+        for i in range(3):
             aug_img_path = os.path.join(dir_augImg, img_name + f"_aug{i}.tif" )
             X_train_aug.append(aug_img_path)
 
     for mask in y_train:
         mask_name = os.path.basename(mask).split(".")[0]
-        for i in range(5):
+        for i in range(3):
             aug_mask_path = os.path.join(dir_augMask, mask_name + f"_aug{i}.tif" )
             y_train_aug.append(aug_mask_path)
 

@@ -9,6 +9,7 @@ import shutil
 import warnings
 from sklearn.model_selection import train_test_split
 import ast
+import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.seterr(divide='ignore', invalid='ignore')
@@ -40,16 +41,16 @@ crop_folder = os.path.join(output_folder, "crops")
 
 if indizes:
     crop_folder = os.path.join(crop_folder, "idx")
-    rebuildCropFolder(crop_folder)
+    X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
 else:
     crop_folder = os.path.join(crop_folder, "no_idx")
-    rebuildCropFolder(crop_folder)
+    X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
 
-# Create following folder(full_img - img - mask) in predictrion folder
-pred_cfolder = os.path.join(output_folder, "prediction", "crops")
-rebuildPredFolder(pred_cfolder) 
+# # Create following folder(full_img - img - mask) in predictrion folder
+# pred_cfolder = os.path.join(output_folder, "prediction", "crops")
+# full_img_out, imgPred_out, maskPred_out = rebuildPredFolder(pred_cfolder) 
 
-# ------------------- Load sentinel tiles ---------------------------------
+#------------------- Load sentinel tiles ---------------------------------
 file = open(senTiles_file, "r")
 sen_lines = file.readlines()
 
@@ -76,37 +77,43 @@ else:
 # ----------------------------- Normalization parameters -------------------------------------------
 print("Start with tile calculating normalization parameter for each band")
 
-for tile_folder in sen_tiles:
-    sen_path = getBandPaths(tile_folder, dir_name)
+norm_textfile = os.path.join(output_folder, "normParameter.txt")
 
-    for band in sen_path:
-        band_name = os.path.basename(band).split(".")[0].split("_")[-1]
-        bands_dict[band_name].append(load_img_as_array(band))
+if os.path.exists(norm_textfile):
+    bands_scale = json.load(open(norm_textfile))
 
-bands_scale = {}
+else:
 
-for key, value in bands_dict.items():
-    band_flatten = np.concatenate([x.flatten() for x in value]) # one big flattened array of each band 
-    c,d = np.nanpercentile(band_flatten, [0.1, 99.9]) # find normailzation parameters for each band
-    bands_scale[key] = [c,d]
+    for tile_folder in sen_tiles:
+        sen_path = getBandPaths(tile_folder, dir_name)
+
+        for band in sen_path:
+            band_name = os.path.basename(band).split(".")[0].split("_")[-1]
+            bands_dict[band_name].append(load_img_as_array(band))
+
+    bands_scale = {}
+
+    for key, value in bands_dict.items():
+        band_flatten = np.concatenate([x.flatten() for x in value]) # one big flattened array of each band 
+        c,d = np.nanpercentile(band_flatten, [0.1, 99.9]) # find normalization parameters for each band
+        bands_scale[key] = [c,d]
+
+    json.dump(bands_scale, open(norm_textfile, "w"))
 
 print("Found normalization values and start croping, scaling Sentinel tiles")
+
 # -------------------- Rasterize PV & Crop Sentinel 2 tiles & Calculate IDX -----------------------
 # Get input data 
 for idx1, tile in enumerate(sen_tiles):
 
-    tile_name = getTileName(tile, dir_name)
-    sen_path = getBandPaths(tile, dir_name)
-                
-    # raster muster for rasterize shps + georeferenzing patches
-    raster_muster = sen_path[0]
+    tile_name, sen_path, raster_muster = getTileBandsRaster(tile, dir_name)         
     print("Start with tile: ", tile_name)
 
     # Create mask as raster for each sentinel tile
     mask_path = rasterizeShapefile(raster_muster, solar_path, output_folder, tile_name, col_name="SolarPark")
 
     # all paths in one list
-    sen_mask = sen_path + [mask_path] # [(VH VV) B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A MASK]
+    sen_mask = sen_path + [mask_path] # [B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A (VH VV) MASK]
 
     bands_patches = {} # {"B11": [[patch1], [patch2] ..., "B11": [...], ..., "SolarParks": [...]}
     
@@ -121,8 +128,14 @@ for idx1, tile in enumerate(sen_tiles):
         # resample all bands that do not have a resolution of 10x10m
         if raster.transform[0] != 10:
             raster = resampleRaster(band, 10)
+            _,xres,_,_,_,yres = raster.GetGeoTransform()
+            if xres == 10 and abs(yres) == 10:
+                print("Succesfully resampled band")
+            else:
+                print("Need to check the resampling again")
             r_array = raster.ReadAsArray()
             r_array = np.expand_dims(r_array, axis=0)
+
         else:
             r_array = raster.read()[:,:10980,:10980]
 
@@ -131,17 +144,56 @@ for idx1, tile in enumerate(sen_tiles):
     
         if idx2 != (len(sen_mask)-1):
                   
+            # Min Max Scaling 
+            # r_array_flat = r_array.flatten()
+            # r_array_minmax = ((r_array-np.amin(r_array_flat))/(np.amax(r_array_flat)-np.amin(r_array_flat)))
+
+            # # 1 and 99 perzentile 
+            # f,l = np.nanpercentile(r_array, [1,99])
+            # r_array_1_99 = ((r_array-f)/(l-f))
+
+            # 1 and 99 perzentile + [0,1]            
             a,b = 0,1
             c,d = bands_scale[band_name]
             r_array_norm = (b-a)*((r_array-c)/(d-c))+a
             r_array_norm[r_array_norm > 1] = 1
             r_array_norm[r_array_norm < 0] = 0
+            
+            # if idx1 == 0:
 
+            #     # Plot histogram of linear normalization 
+            #     q25, q75 = np.percentile(r_array, [25, 75])
+            #     bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
+            #     bins = round((r_array.max() - r_array.min()) / bin_width)   
+            #     rows, cols = 2, 2
+            #     plt.figure(figsize=(20,20))
+            #     plt.subplot(rows, cols, 1)
+            #     plt.title("Band {} - Original histogram".format(band_name), fontsize = 20)
+            #     plt.hist(r_array.flatten(), bins = bins, color="lightcoral")
+            #     plt.ylabel('Number of pixels', fontsize = 16)
+            #     plt.xlabel('DN', fontsize = 16)
+            #     plt.subplot(rows, cols, 2)
+            #     plt.title("Band {} - MinMax normalization".format(band_name), fontsize = 20)
+            #     plt.hist(r_array_minmax.flatten(), bins = bins, color="lightblue")
+            #     plt.ylabel('Number of pixels', fontsize = 16)
+            #     plt.xlabel('Normalized values', fontsize = 16)
+            #     plt.subplot(rows, cols, 3)
+            #     plt.title("Band {} - Normalization 1st/99th percentile".format(band_name), fontsize = 20)
+            #     plt.hist(r_array_1_99.flatten(), bins = bins, color="lightblue")
+            #     plt.ylabel('Number of pixels', fontsize = 16)
+            #     plt.xlabel('Normalized values', fontsize = 16)
+            #     plt.subplot(rows, cols, 4)
+            #     plt.title("Band {} - Normalization 1st/99th percentile [0,1]".format(band_name), fontsize = 20)
+            #     plt.hist(r_array_norm.flatten(), bins = bins, color="lightblue")
+            #     plt.ylabel('Number of pixels', fontsize = 16)
+            #     plt.xlabel('Normalized values', fontsize = 16)
+            #     plt.savefig(f"{output_folder}/Histo{band_name}_linearNorm.jpg")
+                
         else:
             r_array_norm = r_array
         
         bands_patches[band_name] = patchifyRasterAsArray(r_array_norm, patch_size)
-    
+
     # Calculate important indizes
     if indizes:
         print("Calculating indizes")
@@ -152,33 +204,27 @@ for idx1, tile in enumerate(sen_tiles):
         else:
             bands_patches = calculateIndizesSen1(bands_patches)
 
-    # Save patches in folder as raster file
-    # Save trainings data
+    # Save patches in folder as raster file 
+    # Save trainings data 
     if idx1 != len(sen_tiles)-1: 
-        maskTrain_out = os.path.join(crop_folder, "train", "mask") 
-        imgTrain_out = os.path.join(crop_folder, "train", "img") 
-        savePatchesPV(bands_patches, imgTrain_out, maskTrain_out, seed, raster_muster) # save patches for training data 
+        savePatchesPV(bands_patches, X_t_out, y_t_out, seed, raster_muster) # save patches for training data 
     # save prediction data 
     else:
         # save patches for prediction - necessary because i want all preprocess work done in one file 
-        imgPred_out =  os.path.join(pred_cfolder, "img") 
-        maskPred_out =  os.path.join(pred_cfolder, "mask") 
-        savePatchesPV(bands_patches, imgPred_out, maskPred_out, seed, raster_muster) # save same amount of PV and noPV images
+        savePatchesPV(bands_patches, X_p_out, y_p_out, seed, raster_muster) # save same amount of PV and noPV images
         
-        full_img_out = os.path.join(pred_cfolder, "full_img") 
         mask_name = os.path.basename(tile_name).split("_")[1]
         del bands_patches[mask_name]
-        savePatchesFullImg(bands_patches, full_img_out, tile_name) # save patches of entire sentiel 2 tile for prediction 
-         
+        savePatchesFullImg(bands_patches, p_full_out, tile_name) # save patches of entire sentiel 2 tile for prediction 
+
     # Clear memory
     bands_patches = {}
     del r_array
     del raster
 
-# ------------------ Image Augmentation -------------------------------
-
-img_list = glob("{}/*.tif".format(imgTrain_out))
-mask_list = glob("{}/*.tif".format(maskTrain_out))
+#------------------ Image Augmentation -------------------------------
+img_list = glob("{}/*.tif".format(X_t_out))
+mask_list = glob("{}/*.tif".format(y_t_out))
 
 img_list.sort()
 mask_list.sort()
@@ -205,26 +251,3 @@ X_augFolder, y_augFolder = imageAugmentation(X_train, y_train, seed)
 print("Augmented masks are stored in folder: ", X_augFolder)
 print("Augmented images are stored in folder: ", y_augFolder)
 print("Please insert these folder paths in config.yaml!")
-
-# Plot histogram of linear normalization 
-# q25, q75 = np.percentile(r_array, [25, 75])
-# bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
-# bins = round((r_array.max() - r_array.min()) / bin_width)   
-
-# rows, cols = 2, 2
-# plt.figure(figsize=(18,18))
-# plt.subplot(rows, cols, 1)
-# plt.imshow(r_array)
-# plt.title("{} tile without normalization".format(band_name))
-# plt.subplot(rows, cols, 2)
-# plt.imshow(r_array_norm)
-# plt.title("{} tile after normalization".format(band_name))
-# plt.subplot(rows, cols, 3)
-# plt.hist(r_array.flatten(), bins = bins)
-# plt.ylabel('Number of values')
-# plt.xlabel('DN')
-# plt.subplot(rows, cols, 4)
-# plt.hist(r_array_norm.flatten(), bins = bins)
-# plt.ylabel('Number of values')
-# plt.xlabel('DN')
-# plt.savefig(f"{output_folder}/Histo{band_name}.jpg")

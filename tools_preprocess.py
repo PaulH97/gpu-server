@@ -15,25 +15,31 @@ from glob import glob
 
 np.seterr(divide='ignore', invalid='ignore')
 
-def getTileName(tile_folder, model_id):
-
+def getTileBandsRaster(tile_folder, model_id):
+    
     if model_id == "Sentinel-12":   
         # get tile name and path for each band
         tile_name = '_'.join(tile_folder[0].split("_")[-2:])
+        sen_path =  glob(f"{tile_folder[0]}/*.tif") + glob(f"{tile_folder[1]}/*.tif")
+        sen_path.sort() # VH VV B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A 
+    
     else:
-        # remove \n from file path
-        tile_folder = tile_folder.strip()
         # get tile name and path for each band
-        tile_name = '_'.join(tile_folder.split("_")[-2:])
+        tile_folder = tile_folder.strip() # remove \n from file path
+        tile_name = '_'.join(tile_folder.split("_")[-2:])        
+        sen_path = glob(f"{tile_folder}/*.tif") 
+        sen_path.sort() # VH VV or B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A or 
+        
+    raster_muster = [i for i in sen_path if i.find("B2") > 0 or i.find("VH") > 0][-1]
 
-    return tile_name
+    return tile_name, sen_path, raster_muster
 
 def getBandPaths(tile_folder, model_id):
 
     if model_id == "Sentinel-12":   
         # get tile name and path for each band
         sen_path =  glob(f"{tile_folder[0]}/*.tif") + glob(f"{tile_folder[1]}/*.tif")
-        sen_path.sort() #  B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A VH VV
+        sen_path.sort() #  VH VV B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A 
     else:
         # remove \n from file path
         tile_folder = tile_folder.strip()
@@ -399,7 +405,8 @@ def imageAugmentation(X_train, y_train, seed):
         htranslated_img = np.roll(image, n_pixels, axis=1)
         return htranslated_img
 
-    transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip, 'vertical shift': v_transl, 'horizontal shift': h_transl}         
+    #transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip, 'vertical shift': v_transl, 'horizontal shift': h_transl}         
+    transformations = {'rotate': rotation90, 'horizontal flip': h_flip,'vertical flip': v_flip}         
 
     # Create folder for augmented images - so that they got not mixed up with the original images
     augImg_folder = os.path.join("/".join(X_train[0].split("/")[:-2]), "img_aug")
@@ -580,37 +587,30 @@ def filterSen2(sceneList, filterDate=True, filterID=True):
 
 def rebuildCropFolder(crop_folder):
 
+    train = os.path.join(crop_folder, "train")
+    test = os.path.join(crop_folder, "test")
+    prediction = os.path.join(crop_folder, "prediction")
+    train_img = os.path.join(train, "img")
+    train_mask = os.path.join(train, "mask")
+    test_img = os.path.join(test, "img")
+    test_mask = os.path.join(test, "mask")
+    pred_full = os.path.join(prediction, "full_img")
+    pred_img = os.path.join(prediction, "img")
+    pred_mask = os.path.join(prediction, "mask")
+
     if os.path.exists(crop_folder):
         shutil.rmtree(crop_folder)
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "train"))
-        os.mkdir(os.path.join(crop_folder, "test"))
-        os.mkdir(os.path.join(crop_folder, "train", "img"))
-        os.mkdir(os.path.join(crop_folder, "train", "mask"))
-        os.mkdir(os.path.join(crop_folder, "test", "img"))
-        os.mkdir(os.path.join(crop_folder, "test", "mask"))
-    else:
-        os.mkdir(crop_folder)
-        os.mkdir(os.path.join(crop_folder, "img"))
-        os.mkdir(os.path.join(crop_folder, "mask"))
-        os.mkdir(os.path.join(crop_folder, "img", "train"))
-        os.mkdir(os.path.join(crop_folder, "img", "test"))
-        os.mkdir(os.path.join(crop_folder, "mask", "train"))
-        os.mkdir(os.path.join(crop_folder, "mask", "test"))
     
-    return
+    os.mkdir(crop_folder)
+    os.mkdir(train)
+    os.mkdir(test)
+    os.mkdir(train_img)
+    os.mkdir(train_mask)
+    os.mkdir(test_img)
+    os.mkdir(test_mask)
+    os.mkdir(prediction)
+    os.mkdir(pred_full)
+    os.mkdir(pred_img)
+    os.mkdir(pred_mask)
 
-def rebuildPredFolder(pred_cfolder):
-    if os.path.exists(pred_cfolder):
-        shutil.rmtree(pred_cfolder)
-        os.mkdir(pred_cfolder)
-        os.mkdir(os.path.join(pred_cfolder, "full_img"))
-        os.mkdir(os.path.join(pred_cfolder, "img"))
-        os.mkdir(os.path.join(pred_cfolder, "mask"))
-    else:
-        os.mkdir(pred_cfolder)
-        os.mkdir(os.path.join(pred_cfolder, "full_img"))
-        os.mkdir(os.path.join(pred_cfolder, "img"))
-        os.mkdir(os.path.join(pred_cfolder, "mask"))
-
-    return
+    return train_img, train_mask, pred_img, pred_mask, pred_full

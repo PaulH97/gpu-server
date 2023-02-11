@@ -72,7 +72,7 @@ for train_index, val_index in kf.split(X_train):
     X_train_aug, y_train_aug = find_augFiles(X_train_cv,y_train_cv, augImg_folder, augMask_folder)
     print("-------------------- Validation dataset --------------------")
     X_val_aug,  y_val_aug  = find_augFiles(X_val_cv, y_val_cv, augImg_folder, augMask_folder)
-    
+        
     # Load images and masks with an custom data generator - for performance reason - can not load all data from disk
     train_datagen = CustomImageGeneratorTrain(X_train_aug, y_train_aug, patch_xy, b_count)
     val_datagen = CustomImageGeneratorTrain(X_val_aug, y_val_aug, patch_xy, b_count)
@@ -86,7 +86,7 @@ for train_index, val_index in kf.split(X_train):
             
             plt.figure(figsize=(12,6))
             plt.subplot(121)
-            plt.imshow(X[i][:,:,2:5]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... 
+            plt.imshow(X[i][:,:,0]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... # VH VV 
             plt.subplot(122)
             plt.imshow(y[i])
             plt.show()
@@ -102,7 +102,6 @@ for train_index, val_index in kf.split(X_train):
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_dice_metric", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
     earlyStop_callback = tf.keras.callbacks.EarlyStopping(monitor="val_dice_metric", mode="max", verbose=1, patience=10)
 
-    # tf.keras.losses.BinaryCrossentropy() or BinaryFocalLoss(gamma=2)
     # metrics 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.BinaryCrossentropy(), metrics=[
         "accuracy",

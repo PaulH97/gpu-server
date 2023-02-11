@@ -29,7 +29,7 @@ model_parameter:
   optimizer: Adam
   epochs: 100
   kfold: 5
-  name: Ad_bc_50_idx_es
+  name: BC_ES50_128
 
 evaluation: 
   best_model: 
