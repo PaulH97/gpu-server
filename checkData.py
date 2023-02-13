@@ -1,8 +1,7 @@
 import os
-from matplotlib import pyplot as plt
 
 dir_train_img = "/home/hoehn/data/output/Sentinel-2/crops128/idx/train/img"
-dir_train_mask = "/home/hoehn/data/output/Sentinel-12/crops128/no_idx/train/img"
+dir_train_mask = "/home/hoehn/data/output/Sentinel-12/crops128/idx/test/img"
 img_count = len(os.listdir(dir_train_img))
 mask_count = len(os.listdir(dir_train_mask))
 

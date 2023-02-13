@@ -225,17 +225,17 @@ def imageAugmentation(X_train, y_train, seed):
         
     return augImg_folder, augMask_folder 
 
-def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
-
-    def removeChars(input_string):
+def removeChars(input_string):
         string_split = os.path.basename(input_string).split("_")
         string_split.pop(1)
         new_string = "_".join(string_split)
         return new_string
+
+def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
        
     X_train_aug = []
     y_train_aug = []
-
+    
     X_train.sort()
     y_train.sort()
 
@@ -244,15 +244,21 @@ def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
 
     for img in X_train:
         img_name = os.path.basename(img).split(".")[0]
-        for i in range(3):
-            aug_img_path = os.path.join(dir_augImg, img_name + f"_aug{i}.tif" )
-            X_train_aug.append(aug_img_path)
+        img_aug = img_name + "_aug0.tif"
+        if img_aug in os.listdir(dir_augImg):
+
+            for i in range(3):
+                aug_img_path = os.path.join(dir_augImg, img_name + f"_aug{i}.tif" )
+                X_train_aug.append(aug_img_path)
 
     for mask in y_train:
         mask_name = os.path.basename(mask).split(".")[0]
-        for i in range(3):
-            aug_mask_path = os.path.join(dir_augMask, mask_name + f"_aug{i}.tif" )
-            y_train_aug.append(aug_mask_path)
+        mask_aug = mask_name + "_aug0.tif"
+        if mask_aug in os.listdir(dir_augMask):
+            
+            for i in range(3):
+                aug_mask_path = os.path.join(dir_augMask, mask_name + f"_aug{i}.tif" )
+                y_train_aug.append(aug_mask_path)
 
     X_train_aug += X_train
     y_train_aug += y_train

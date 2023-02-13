@@ -10,6 +10,21 @@ import tensorflow as tf
 import random 
 import json
 
+# Allocate only 80% of GPU memory
+
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# if gpus:
+#   # Restrict TensorFlow to only allocate XY of memory on the first GPU
+#   try:
+#     tf.config.experimental.set_virtual_device_configuration(
+#         gpus[0],
+#         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=34244)]) # Notice here
+#     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+#     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+#   except RuntimeError as e:
+#     # Virtual devices must be set before GPUs have been initialized
+#     print(e)
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Read data from config file
@@ -49,16 +64,16 @@ b_count = patch_array.shape[-1]
 augImg_folder = os.path.join(base_folder, "train/img_aug")
 augMask_folder = os.path.join(base_folder, "train/mask_aug")
 
-# Completly held out data as generator - for later evaluation
 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
 print("-------------------- Trainig dataset --------------------")
 X_train_aug, y_train_aug = find_augFiles(X_train,y_train, augImg_folder, augMask_folder)
-print("-------------------- Validation dataset --------------------")
-X_val_aug,  y_val_aug  = find_augFiles(X_val, y_val, augImg_folder, augMask_folder)
+# print("-------------------- Validation dataset --------------------")
+# X_val_aug,  y_val_aug  = find_augFiles(X_val, y_val, augImg_folder, augMask_folder)
 
 train_datagen = CustomImageGeneratorTrain(X_train_aug, y_train_aug, patch_xy, b_count)
-val_datagen = CustomImageGeneratorTrain(X_val_aug, y_val_aug, patch_xy, b_count)
+#val_datagen = CustomImageGeneratorTrain(X_val_aug, y_val_aug, patch_xy, b_count)
+val_datagen = CustomImageGeneratorTrain(X_val, y_val, patch_xy, b_count)
 test_datagen = CustomImageGeneratorTest(X_test, y_test, patch_xy, b_count)
 
 # sanity check
