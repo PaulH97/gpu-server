@@ -29,7 +29,8 @@ if os.path.exists("config.yaml"):
         augMask_folder = data["augMask_folder"]
         model_name = data['model_parameter']['name']
         model_dir = os.path.join(output_folder, "models", model_name)
-        evalution_metric = data["evaluation"]["metric"]
+        val_metric = data["evaluation"]["metric"]
+        val_metric = "val_" + str(val_metric)
 
 # If model exist with same parameter delete this model      
 if not os.path.exists(model_dir):
@@ -90,7 +91,7 @@ for train_index, val_index in kf.split(X_train):
             plt.subplot(122)
             plt.imshow(y[i])
             plt.show()
-            plt.savefig(os.path.join(output_folder, "crops/sanity_check{}.png".format(i))) 
+            plt.savefig(os.path.join(output_folder, "crops/sanityCheck/sanity_check{}.png".format(i))) 
 
     #Load model
     model = binary_unet(patch_xy[0], patch_xy[1], b_count)  
@@ -99,8 +100,8 @@ for train_index, val_index in kf.split(X_train):
     log_dir = os.path.join(model_dir, "logs", f"logs_k{fold_var}") 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
     checkpoint_path = os.path.join(model_dir, "checkpoints", f"best_weights_k{fold_var}.h5")
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_dice_metric", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
-    earlyStop_callback = tf.keras.callbacks.EarlyStopping(monitor="val_dice_metric", mode="max", verbose=1, patience=10)
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor=val_metric, mode='max', verbose=1, save_best_only=True, save_weights_only=True)
+    earlyStop_callback = tf.keras.callbacks.EarlyStopping(monitor=val_metric, mode="max", verbose=1, patience=10)
 
     # metrics 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.BinaryCrossentropy(), metrics=[

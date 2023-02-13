@@ -590,6 +590,7 @@ def rebuildCropFolder(crop_folder):
     train = os.path.join(crop_folder, "train")
     test = os.path.join(crop_folder, "test")
     prediction = os.path.join(crop_folder, "prediction")
+    sanity_check = os.path.join(crop_folder, "sanityCheck")
     train_img = os.path.join(train, "img")
     train_mask = os.path.join(train, "mask")
     test_img = os.path.join(test, "img")
@@ -612,5 +613,6 @@ def rebuildCropFolder(crop_folder):
     os.mkdir(pred_full)
     os.mkdir(pred_img)
     os.mkdir(pred_mask)
+    os.mkdir(sanity_check)
 
     return train_img, train_mask, pred_img, pred_mask, pred_full

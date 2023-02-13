@@ -25,19 +25,12 @@ prediction:
 
 model_parameter:
   patch_size: 128
-  loss_function: Binary_crossentropy
-  optimizer: Adam
   epochs: 100
   kfold: 5
-  name: BC_ES50_128
-
-evaluation: 
-  best_model: 
-  metric: dice_metric
-
-augImg_folder: /home/hoehn/data/output/Sentinel-12/crops/idx/train/img_aug
-augMask_folder: /home/hoehn/data/output/Sentinel-12/crops/idx/train/mask_aug
-
+  val_metric: dice_metric
+  name: S12_128idx_single
+  
 indizes: True
-seed: 42
 output_folder: "/home/hoehn/data/output/Sentinel-12"
+ 
+seed: 42

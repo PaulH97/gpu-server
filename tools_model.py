@@ -101,25 +101,33 @@ def createMetrics(file, metrics_dict, name_data):
     append_new_line(file, "--------------------- Mean metrics ---------------------")
     [append_new_line(file, f"{key}: {value}") for key, value in mean.items()]
 
-def load_trainData(output_folder, idx):
+def load_trainData(output_folder, idx, patch_size):
+
+    if patch_size == 128:
+        crop_folder = "crops128"
+    else: 
+        crop_folder = "crops256"
 
     if idx:
-        X_train = glob("{}/crops/idx/train/img/*.tif".format(output_folder))
-        y_train = glob("{}/crops/idx/train/mask/*.tif".format(output_folder))
-        X_test = glob("{}/crops/idx/test/img/*.tif".format(output_folder))
-        y_test = glob("{}/crops/idx/test/mask/*.tif".format(output_folder))
+        idx_folder = "idx" 
     else:
-        X_train = glob("{}/crops/no_idx/train/img/*.tif".format(output_folder))
-        y_train = glob("{}/crops/no_idx/train/mask/*.tif".format(output_folder))
-        X_test = glob("{}/crops/no_idx/test/img/*.tif".format(output_folder))
-        y_test = glob("{}/crops/no_idx/test/mask/*.tif".format(output_folder))
+        idx_folder = "no_idx"
+        
+    base_folder = os.path.join(output_folder, crop_folder, idx_folder)
+    
+    X_train = glob("{}/train/img/*.tif".format(base_folder))
+    y_train = glob("{}/train/mask/*.tif".format(base_folder))
+    X_test = glob("{}/test/img/*.tif".format(base_folder))
+    y_test = glob("{}/test/mask/*.tif".format(base_folder))
 
     X_train.sort()
     X_test.sort()
     y_train.sort()
     y_test.sort()
 
-    return X_train, X_test, y_train, y_test
+    print("Loaded training data from base folder: ", base_folder)
+
+    return X_train, X_test, y_train, y_test, base_folder
 
 def imageAugmentation(X_train, y_train, seed):
 

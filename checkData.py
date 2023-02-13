@@ -1,8 +1,8 @@
 import os
 from matplotlib import pyplot as plt
 
-dir_train_img = "/home/hoehn/data/output/Sentinel-2/crops/idx/train/img"
-dir_train_mask = "/home/hoehn/data/output/Sentinel-2/crops/idx/train/mask"
+dir_train_img = "/home/hoehn/data/output/Sentinel-2/crops128/idx/train/img"
+dir_train_mask = "/home/hoehn/data/output/Sentinel-12/crops128/no_idx/train/img"
 img_count = len(os.listdir(dir_train_img))
 mask_count = len(os.listdir(dir_train_mask))
 
@@ -13,7 +13,7 @@ equal = []
 missing = []
 
 for i in os.listdir(dir_train_img):
-    i = "_".join(["mask" if j == "img" else j for j in i.split("_")]) 
+    #i = "_".join(["mask" if j == "img" else j for j in i.split("_")]) 
 
     if i not in os.listdir(dir_train_mask):
         missing.append(i)
@@ -22,4 +22,3 @@ for i in os.listdir(dir_train_img):
 
 print("Found {} equal files in both dirs".format(len(equal)))
 print("Found {} missing files in both dirs".format(len(missing)))
-

@@ -37,14 +37,15 @@ if os.path.exists("config.yaml"):
         tiles_file = data["satellite"]["tiles_path"]
 
 # -------------------- Build folder structure ------------------------
-crop_folder = os.path.join(output_folder, "crops")
+crop_name = "crops" + str(patch_size)
+crop_folder = os.path.join(output_folder, crop_name)
 
-if indizes:
-    crop_folder = os.path.join(crop_folder, "idx")
-    X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
-else:
-    crop_folder = os.path.join(crop_folder, "no_idx")
-    X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
+# if indizes:
+#     crop_folder = os.path.join(crop_folder, "idx")
+#     X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
+# else:
+#     crop_folder = os.path.join(crop_folder, "no_idx")
+#     X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
 
 # # Create following folder(full_img - img - mask) in predictrion folder
 # pred_cfolder = os.path.join(output_folder, "prediction", "crops")
@@ -144,14 +145,6 @@ for idx1, tile in enumerate(sen_tiles):
     
         if idx2 != (len(sen_mask)-1):
                   
-            # Min Max Scaling 
-            # r_array_flat = r_array.flatten()
-            # r_array_minmax = ((r_array-np.amin(r_array_flat))/(np.amax(r_array_flat)-np.amin(r_array_flat)))
-
-            # # 1 and 99 perzentile 
-            # f,l = np.nanpercentile(r_array, [1,99])
-            # r_array_1_99 = ((r_array-f)/(l-f))
-
             # 1 and 99 perzentile + [0,1]            
             a,b = 0,1
             c,d = bands_scale[band_name]
@@ -161,33 +154,41 @@ for idx1, tile in enumerate(sen_tiles):
             
             # if idx1 == 0:
 
-            #     # Plot histogram of linear normalization 
-            #     q25, q75 = np.percentile(r_array, [25, 75])
-            #     bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
-            #     bins = round((r_array.max() - r_array.min()) / bin_width)   
-            #     rows, cols = 2, 2
-            #     plt.figure(figsize=(20,20))
-            #     plt.subplot(rows, cols, 1)
-            #     plt.title("Band {} - Original histogram".format(band_name), fontsize = 20)
-            #     plt.hist(r_array.flatten(), bins = bins, color="lightcoral")
-            #     plt.ylabel('Number of pixels', fontsize = 16)
-            #     plt.xlabel('DN', fontsize = 16)
-            #     plt.subplot(rows, cols, 2)
-            #     plt.title("Band {} - MinMax normalization".format(band_name), fontsize = 20)
-            #     plt.hist(r_array_minmax.flatten(), bins = bins, color="lightblue")
-            #     plt.ylabel('Number of pixels', fontsize = 16)
-            #     plt.xlabel('Normalized values', fontsize = 16)
-            #     plt.subplot(rows, cols, 3)
-            #     plt.title("Band {} - Normalization 1st/99th percentile".format(band_name), fontsize = 20)
-            #     plt.hist(r_array_1_99.flatten(), bins = bins, color="lightblue")
-            #     plt.ylabel('Number of pixels', fontsize = 16)
-            #     plt.xlabel('Normalized values', fontsize = 16)
-            #     plt.subplot(rows, cols, 4)
-            #     plt.title("Band {} - Normalization 1st/99th percentile [0,1]".format(band_name), fontsize = 20)
-            #     plt.hist(r_array_norm.flatten(), bins = bins, color="lightblue")
-            #     plt.ylabel('Number of pixels', fontsize = 16)
-            #     plt.xlabel('Normalized values', fontsize = 16)
-            #     plt.savefig(f"{output_folder}/Histo{band_name}_linearNorm.jpg")
+                # Min Max Scaling 
+                # r_array_flat = r_array.flatten()
+                # r_array_minmax = ((r_array-np.amin(r_array_flat))/(np.amax(r_array_flat)-np.amin(r_array_flat)))
+
+                # # 1 and 99 perzentile 
+                # f,l = np.nanpercentile(r_array, [1,99])
+                # r_array_1_99 = ((r_array-f)/(l-f))
+
+                # # Plot histogram of linear normalization 
+                # q25, q75 = np.percentile(r_array, [25, 75])
+                # bin_width = 2 * (q75 - q25) * len(r_array) ** (-1/3)
+                # bins = round((r_array.max() - r_array.min()) / bin_width)   
+                # rows, cols = 2, 2
+                # plt.figure(figsize=(20,20))
+                # plt.subplot(rows, cols, 1)
+                # plt.title("Band {} - Original histogram".format(band_name), fontsize = 20)
+                # plt.hist(r_array.flatten(), bins = bins, color="lightcoral")
+                # plt.ylabel('Number of pixels', fontsize = 16)
+                # plt.xlabel('DN', fontsize = 16)
+                # plt.subplot(rows, cols, 2)
+                # plt.title("Band {} - MinMax normalization".format(band_name), fontsize = 20)
+                # plt.hist(r_array_minmax.flatten(), bins = bins, color="lightblue")
+                # plt.ylabel('Number of pixels', fontsize = 16)
+                # plt.xlabel('Normalized values', fontsize = 16)
+                # plt.subplot(rows, cols, 3)
+                # plt.title("Band {} - Normalization 1st/99th percentile".format(band_name), fontsize = 20)
+                # plt.hist(r_array_1_99.flatten(), bins = bins, color="lightblue")
+                # plt.ylabel('Number of pixels', fontsize = 16)
+                # plt.xlabel('Normalized values', fontsize = 16)
+                # plt.subplot(rows, cols, 4)
+                # plt.title("Band {} - Normalization 1st/99th percentile [0,1]".format(band_name), fontsize = 20)
+                # plt.hist(r_array_norm.flatten(), bins = bins, color="lightblue")
+                # plt.ylabel('Number of pixels', fontsize = 16)
+                # plt.xlabel('Normalized values', fontsize = 16)
+                # plt.savefig(f"{output_folder}/Histo{band_name}_linearNorm.jpg")
                 
         else:
             r_array_norm = r_array
