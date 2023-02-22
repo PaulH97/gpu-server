@@ -1,0 +1,45 @@
+model_params:
+  model_1:
+    folder: "/home/hoehn/data/output/Sentinel-2"
+    patch_size: 128
+    idx: True
+    name: S2_128idx_kfold
+  model_2:
+    folder: "/home/hoehn/data/output/Sentinel-2"
+    patch_size: 128
+    idx: False
+    name: S2_128noidx_kfold
+  model_3:
+    folder: "/home/hoehn/data/output/Sentinel-2"
+    patch_size: 256
+    idx: True
+    name: S2_256idx_kfold
+  model_4:
+    folder: "/home/hoehn/data/output/Sentinel-2"
+    patch_size: 256
+    idx: False
+    name: S2_256noidx_kfold
+  model_5:
+    folder: "/home/hoehn/data/output/Sentinel-12"
+    patch_size: 128
+    idx: True
+    name: S12_128idx_kfold
+  model_6:
+    folder: "/home/hoehn/data/output/Sentinel-12"
+    patch_size: 128
+    idx: False
+    name: S12_128noidx_kfold
+  model_7:
+    folder: "/home/hoehn/data/output/Sentinel-12"
+    patch_size: 256
+    idx: True
+    name: S12_256idx_kfold
+  model_8:
+    folder: "/home/hoehn/data/output/Sentinel-12"
+    patch_size: 256
+    idx: False
+    name: S12_256noidx_kfold
+training_params:
+  kfold: 5
+  epochs: 100
+  seed: 42

@@ -14,7 +14,7 @@ import json
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
-
+GDAL_DISABLE_READDIR_ON_OPEN=True
 # -------------------- Load data -------------------------------
 # Read data from config file
 if os.path.exists("config.yaml"):
@@ -36,22 +36,22 @@ if os.path.exists("config.yaml"):
         dir_name = output_folder.split("/")[-1]
         tiles_file = data["satellite"]["tiles_path"]
 
-# -------------------- Build folder structure ------------------------
-crop_name = "crops" + str(patch_size)
+# # -------------------- Build folder structure ------------------------
+crop_name = "crop" + str(patch_size)
 crop_folder = os.path.join(output_folder, crop_name)
 
-# if indizes:
-#     crop_folder = os.path.join(crop_folder, "idx")
-#     X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
-# else:
-#     crop_folder = os.path.join(crop_folder, "no_idx")
-#     X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
+if indizes:
+    crop_folder = os.path.join(crop_folder, "idx")
+    X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
+else:
+    crop_folder = os.path.join(crop_folder, "no_idx")
+    X_t_out, y_t_out, X_p_out, y_p_out, p_full_out = rebuildCropFolder(crop_folder)
 
-# # Create following folder(full_img - img - mask) in predictrion folder
+#Create following folder(full_img - img - mask) in predictrion folder
 # pred_cfolder = os.path.join(output_folder, "prediction", "crops")
 # full_img_out, imgPred_out, maskPred_out = rebuildPredFolder(pred_cfolder) 
 
-#------------------- Load sentinel tiles ---------------------------------
+# ##------------------- Load sentinel tiles ---------------------------------
 file = open(senTiles_file, "r")
 sen_lines = file.readlines()
 
@@ -75,7 +75,7 @@ else:
 
 [print(tile) for tile in sen_tiles]
 
-# ----------------------------- Normalization parameters -------------------------------------------
+# # ----------------------------- Normalization parameters -------------------------------------------
 print("Start with tile calculating normalization parameter for each band")
 
 norm_textfile = os.path.join(output_folder, "normParameter.txt")
@@ -105,6 +105,7 @@ print("Found normalization values and start croping, scaling Sentinel tiles")
 
 # -------------------- Rasterize PV & Crop Sentinel 2 tiles & Calculate IDX -----------------------
 # Get input data 
+
 for idx1, tile in enumerate(sen_tiles):
 
     tile_name, sen_path, raster_muster = getTileBandsRaster(tile, dir_name)         
@@ -223,9 +224,12 @@ for idx1, tile in enumerate(sen_tiles):
     del r_array
     del raster
 
-#------------------ Image Augmentation -------------------------------
-img_list = glob("{}/*.tif".format(X_t_out))
-mask_list = glob("{}/*.tif".format(y_t_out))
+## ------------------ Image Augmentation -------------------------------
+img_list = glob("{}/*.tif".format("/home/hoehn/data/output/Sentinel-12/crops256/idx/train/img"))
+mask_list = glob("{}/*.tif".format("/home/hoehn/data/output/Sentinel-12/crops256/idx/train/mask"))
+
+print(len(img_list))
+print(len(mask_list))
 
 img_list.sort()
 mask_list.sort()
@@ -246,9 +250,10 @@ for idx in range(len(X_test)):
 print("Files in training/img folder: ", len((os.listdir(os.path.dirname(X_train[0])))))
 print("Files in test/img folder: ", len((os.listdir(os.path.dirname(X_test_dst[0])*len(X_test)))))
 
-# Image Augmentation 
+##Image Augmentation 
 X_augFolder, y_augFolder = imageAugmentation(X_train, y_train, seed)  
+X_augFolder, y_augFolder = imageAugmentation(img_list, mask_list, seed) 
 
 print("Augmented masks are stored in folder: ", X_augFolder)
 print("Augmented images are stored in folder: ", y_augFolder)
-print("Please insert these folder paths in config.yaml!")
+

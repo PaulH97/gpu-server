@@ -1,7 +1,7 @@
 import os
 from glob import glob
 import yaml
-from tools_model import load_img_as_array, load_trainData, dice_metric, find_augFiles
+from tools_model import load_img_as_array, load_trainData, dice_metric, find_augFiles2, removeChars
 from sklearn.model_selection import train_test_split
 from unet import binary_unet, build_unet
 from matplotlib import pyplot as plt
@@ -11,19 +11,9 @@ import random
 import json
 
 # Allocate only 80% of GPU memory
+gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=1-0.2)
 
-# gpus = tf.config.experimental.list_physical_devices('GPU')
-# if gpus:
-#   # Restrict TensorFlow to only allocate XY of memory on the first GPU
-#   try:
-#     tf.config.experimental.set_virtual_device_configuration(
-#         gpus[0],
-#         [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=34244)]) # Notice here
-#     logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-#     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-#   except RuntimeError as e:
-#     # Virtual devices must be set before GPUs have been initialized
-#     print(e)
+sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -67,9 +57,20 @@ augMask_folder = os.path.join(base_folder, "train/mask_aug")
 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=seed)
 
 print("-------------------- Trainig dataset --------------------")
-X_train_aug, y_train_aug = find_augFiles(X_train,y_train, augImg_folder, augMask_folder)
+X_train_aug, y_train_aug = find_augFiles2(X_train,y_train, augImg_folder, augMask_folder, seed)
 # print("-------------------- Validation dataset --------------------")
 # X_val_aug,  y_val_aug  = find_augFiles(X_val, y_val, augImg_folder, augMask_folder)
+print("-------------------- Validation dataset -----------------")
+X_val.sort()
+y_val.sort() 
+# check if dataset have equal order 
+temp_X = list(map(removeChars, X_val))
+temp_y = list(map(removeChars, y_val))   
+print("X_val length after adding augementation files: ", len(X_val))
+print("y_val length after adding augmentation files: ", len(y_val))
+print("Does X_val and y_val have a equal size of files?:{}".format(temp_X==temp_y))
+print("Does X_val and y_val have the same structure?:{}".format(len(temp_X)==len(temp_y)))
+print("---------------------------------------------------------")
 
 train_datagen = CustomImageGeneratorTrain(X_train_aug, y_train_aug, patch_xy, b_count)
 #val_datagen = CustomImageGeneratorTrain(X_val_aug, y_val_aug, patch_xy, b_count)
@@ -77,19 +78,22 @@ val_datagen = CustomImageGeneratorTrain(X_val, y_val, patch_xy, b_count)
 test_datagen = CustomImageGeneratorTest(X_test, y_test, patch_xy, b_count)
 
 # sanity check
-batch_nr = random.randint(0, len(train_datagen))
+batch_nr = 5 #random.randint(0, len(train_datagen))
 X,y = train_datagen[batch_nr] # train_datagen[0] = ((16,128,128,12),(16,128,128,1)) -> tupel
 sc_folder = "/".join(X_train[0].split("/")[:-3]) + "/sanityCheck"
 
 for i in range(X.shape[0]):
-    
+        
     plt.figure(figsize=(12,6))
+    plt.title("Example of training data sample for Sentinel-2", fontsize = 12)
     plt.subplot(121)
+    plt.title("False-colour composite (BGR) of patch", fontsize = 12)
     plt.imshow(X[i][:,:,2:5]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... # VH VV 
     plt.subplot(122)
+    plt.title("Binary Mask of patch", fontsize = 12)
     plt.imshow(y[i])
     plt.show()
-    plt.savefig(os.path.join(output_folder, "{}/check{}.png".format(sc_folder, i))) 
+    plt.savefig(os.path.join(output_folder, "{}/single_{}.png".format(sc_folder, i))) 
 
 #Load model
 model = binary_unet(patch_xy[0], patch_xy[1], b_count)  

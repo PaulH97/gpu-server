@@ -230,8 +230,7 @@ def removeChars(input_string):
         string_split.pop(1)
         new_string = "_".join(string_split)
         return new_string
-
-def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
+def find_augFiles2(X_train, y_train, dir_augImg, dir_augMask, seed):
        
     X_train_aug = []
     y_train_aug = []
@@ -259,6 +258,54 @@ def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
             for i in range(3):
                 aug_mask_path = os.path.join(dir_augMask, mask_name + f"_aug{i}.tif" )
                 y_train_aug.append(aug_mask_path)
+
+    X_train_aug += X_train
+    y_train_aug += y_train
+
+    X_train_aug.sort()
+    y_train_aug.sort()
+
+    print("X_train length after adding augementation files: ", len(X_train_aug))
+    print("y_train length after adding augmentation files: ", len(y_train_aug))
+
+    # check if dataset have equal order 
+    temp_X = list(map(removeChars, X_train_aug))
+    temp_y = list(map(removeChars, y_train_aug))
+    
+    print("Does X_train and y_train have a equal size of files?:{}".format(temp_X==temp_y))
+    print("Does X_train and y_train have the same structure?:{}".format(len(temp_X)==len(temp_y)))
+    
+    temp_Xy = list(zip(X_train_aug, y_train_aug))
+    random.seed(seed)
+    random.shuffle(temp_Xy)
+    X_train_aug, y_train_aug = zip(*temp_Xy) 
+
+    return X_train_aug, y_train_aug 
+
+def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):
+       
+    X_train_aug = []
+    y_train_aug = []
+    
+    X_train.sort()
+    y_train.sort()
+
+    print("X_train length before adding augementation files: ", len(X_train))
+    print("y_train length before adding augmentation files: ", len(y_train))
+
+    for img in X_train:
+        img_name = os.path.basename(img).split(".")[0]
+
+        for i in range(3):
+            aug_img_path = os.path.join(dir_augImg, img_name + f"_aug{i}.tif" )
+            X_train_aug.append(aug_img_path)
+
+    for mask in y_train:
+        mask_name = os.path.basename(mask).split(".")[0]
+            
+        for i in range(3):
+            aug_mask_path = os.path.join(dir_augMask, mask_name + f"_aug{i}.tif" )
+            y_train_aug.append(aug_mask_path)
 
     X_train_aug += X_train
     y_train_aug += y_train

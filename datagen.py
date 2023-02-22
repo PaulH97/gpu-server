@@ -14,18 +14,16 @@ def load_img_as_array(path):
     
 class CustomImageGeneratorTest(Sequence):
 
-    def __init__(self, X_set, y_set, output_size, bands, batch_size=16):
+    def __init__(self, X_set, y_set, output_size, bands, batch_size=32):
 
         self.x = X_set # Paths to all images as list
         self.y = y_set # paths to all masks as list
         self.output_size = output_size
         self.band_count = bands
+            
         self.batch_size = batch_size
         self.indices = np.arange(len(self.x))
-
-    def __len__(self):
-        return int(len(self.x)/self.batch_size)
-    
+   
     def __getitem__(self, idx):
 
         inds = self.indices[idx*self.batch_size:(idx+1)*self.batch_size]
@@ -47,12 +45,13 @@ class CustomImageGeneratorTest(Sequence):
     
 class CustomImageGeneratorTrain(Sequence):
 
-    def __init__(self, X_set, y_set, output_size, bands, batch_size=16):
+    def __init__(self, X_set, y_set, output_size, bands, batch_size=32):
 
         self.x = X_set # Paths to all images as list
         self.y = y_set # paths to all masks as list
         self.output_size = output_size
         self.band_count = bands
+        
         self.batch_size = batch_size
         self.indices = np.arange(len(self.x))
 
@@ -83,11 +82,15 @@ class CustomImageGeneratorTrain(Sequence):
 
 class CustomImageGeneratorPrediction(Sequence):
 
-    def __init__(self, X_set, output_size, bands, batch_size=5):
+    def __init__(self, X_set, output_size, bands, batch_size=16):
 
         self.x = X_set # paths to all images as list
         self.output_size = output_size
         self.band_count = bands
+        
+        while len(self.x) % batch_size != 0:
+            batch_size -= 1
+                    
         self.batch_size = batch_size
 
     def __len__(self):

@@ -9,32 +9,40 @@ from datagen import CustomImageGeneratorTrain, CustomImageGeneratorTest
 import tensorflow as tf
 import random 
 import json
+import argparse
 
 # Allocate only 80% of GPU memory
-
-gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=1-0.1)
-
+gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=1-0.15)
 sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
+
+# Definieren der Argumente
+parser = argparse.ArgumentParser()
+parser.add_argument('--run_number', type=int, required=True, help='Current run number')
+args = parser.parse_args()
+
+# Zugriff auf die Argumente
+run_number = args.run_number
+
+# Ausgabe der aktuellen Nummer
+model_ID = "model_" + str(run_number)
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Read data from config file
-if os.path.exists("config.yaml"):
-    with open('config.yaml') as f:
+if os.path.exists("config_train.yaml"):
+    with open('config_train.yaml') as f:
 
         data = yaml.load(f, Loader=yaml.FullLoader)
         
-        patch_size = data['model_parameter']['patch_size']
-        epochs = data['model_parameter']['epochs']
-        indizes = data["indizes"]
-        output_folder = data["output_folder"]
-        k_folds = data['model_parameter']['kfold']
-        seed = data["seed"]
-        val_metric = data["model_parameter"]["val_metric"]
-        val_metric = "val_" + str(val_metric)
-        model_name = data["model_parameter"]["name"]
-
-model_dir = os.path.join(output_folder, "models", model_name)
+        output_folder = data["model_params"][model_ID]["folder"]
+        patch_size = data["model_params"][model_ID]["patch_size"]
+        indizes = data["model_params"][model_ID]["idx"]
+        model_name = data["model_params"][model_ID]["name"]
+        epochs = data["training_params"]["epochs"]
+        k_folds = data["training_params"]["kfold"]
+        seed = data["training_params"]["seed"]
+        
+model_dir = os.path.join(output_folder, "models2", model_name)
 print("Training model in folder: ", model_dir)
 
 # If model exist with same parameter delete this model      
@@ -46,8 +54,6 @@ if not os.path.exists(model_dir):
 
 # Load training + test data from local folder and sort paths after preprocessing 
 X_train, X_test, y_train, y_test, base_folder = load_trainData(output_folder, indizes, patch_size)
-# print(f"Training dataset: {len(X_train)} Test dataset: {len(X_test)}")
-
 X_train += X_test 
 y_train += y_test
 
@@ -94,7 +100,15 @@ for train_index, val_index in kf.split(X_train):
     print("Does X_val and y_val have the same structure?:{}".format(temp_X==temp_y))
     print("Does X_val and y_val have a equal size of files?:{}".format(len(temp_X)==len(temp_y)))
     print("---------------------------------------------------------")
- 
+    
+    print(f"Length of training dataset: {len(X_train_aug)}")
+
+    while len(X_train_aug) % 2 != 0:
+        X_train_aug = X_train_aug[:-1]
+        y_train_aug = y_train_aug[:-1]
+
+    print(f"Length of training dataset after slice: {len(X_train_aug)}")
+
     # Load images and masks with an custom data generator - for performance reason - can not load all data from disk
     train_datagen = CustomImageGeneratorTrain(X_train_aug, y_train_aug, patch_xy, b_count)
     val_datagen = CustomImageGeneratorTrain(X_val_cv, y_val_cv, patch_xy, b_count)
@@ -114,6 +128,8 @@ for train_index, val_index in kf.split(X_train):
         plt.show()
         plt.savefig(os.path.join(output_folder, "{}/kfold_{}_{}.png".format(sc_folder,fold_var, i))) 
     
+    print("Finished sanity check")
+    
     #Load model
     model = binary_unet(patch_xy[0], patch_xy[1], b_count)  
 
@@ -121,8 +137,8 @@ for train_index, val_index in kf.split(X_train):
     log_dir = os.path.join(model_dir, "logs", f"logs_k{fold_var}") 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
     checkpoint_path = os.path.join(model_dir, "checkpoints", f"best_weights_k{fold_var}.h5")
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor=val_metric, mode='max', verbose=1, save_best_only=True, save_weights_only=True)
-    earlyStop_callback = tf.keras.callbacks.EarlyStopping(monitor=val_metric, mode="max", verbose=1, patience=20)
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, monitor="val_dice_metric", mode='max', verbose=1, save_best_only=True, save_weights_only=True)
+    earlyStop_callback = tf.keras.callbacks.EarlyStopping(monitor="val_dice_metric", mode="max", verbose=1, patience=15)
 
     # metrics 
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.BinaryCrossentropy(), metrics=[
@@ -132,19 +148,13 @@ for train_index, val_index in kf.split(X_train):
         tf.keras.metrics.Precision(name="precision"),
         tf.keras.metrics.BinaryIoU(name="iou")])
 
-
     model.fit(train_datagen, validation_data=val_datagen, verbose=1, epochs=epochs, callbacks=[checkpoint_callback, tensorboard_callback, earlyStop_callback])
-    
     model.load_weights(checkpoint_path)
     
     print("Evaluate on validation data")
     val_results = model.evaluate(val_datagen)
-    #test_results = model.evaluate(test_datagen)
     val_r_dict = dict(zip(model.metrics_names,val_results))
-    #test_r_dict = dict(zip(model.metrics_names, test_results))
-
     val_metrics[f"Kfold_{fold_var}"] = val_r_dict 
-    #test_metrics[f"Kfold_{fold_var}"] = test_r_dict
 
     tf.keras.backend.clear_session()
 
@@ -157,7 +167,6 @@ else:
     with open(file, "w") as document: pass # create empty textfile
 
 createMetrics(file, val_metrics, "Validation data")
-#createMetrics(file, test_metrics, "Test data")
 
 # Find best model comparing one metric from all kfolds and save it - choose test or validation
 list_metrics = []
