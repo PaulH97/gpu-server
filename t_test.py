@@ -12,6 +12,7 @@ def corrected_t_test(y1, y2, alpha=0.05):
     y1 = np.array(y1)
     y2 = np.array(y2)
     d = y1 - y2
+    print(d)
     # Calculate the mean difference
     mean_d = np.mean(d)
     # Calculate the standard deviation of the differences
@@ -49,16 +50,19 @@ def getMetrics(model_path):
     recall = [eval(fold)["recall"] for fold in metrics_folds]
     precision = [eval(fold)["precision"] for fold in metrics_folds]
     iou = [eval(fold)["iou"] for fold in metrics_folds]
+    dice = [eval(fold)["dice_metric"] for fold in metrics_folds]
     f1 = [(2*pr[0]*pr[1])/(pr[0] + pr[1]) for pr in zip(precision,recall)]  
     
-    all_metrics = np.array([precision, recall, f1, iou]) 
+    all_metrics = np.array([precision, recall, f1, iou, dice]) *100
     
     return all_metrics
 
-model1 = "/home/hoehn/data/output/Sentinel-2/models/S2_128idx_kfold"
-model2 = "/home/hoehn/data/output/Sentinel-2/models/S2_128noidx_kfold"
+model1 = "/home/hoehn/data/output/Sentinel-2/models2/S2_256idx_kfold"
+model2 = "/home/hoehn/data/output/Sentinel-12/models2/S12_256idx_kfold"
 
-metrics = ["Precision", "Recall", "F1-score", "iou"]
+textfile = "S2_256idx_vs_S12_256idx.txt"
+
+metrics = ["Precision", "Recall", "F1-score", "iou", "dice_metric"]
 m1_metrics = getMetrics(model1)
 m2_metrics = getMetrics(model2)
 
@@ -71,8 +75,10 @@ for i, metric in enumerate(metrics):
               "P-Value": p_value, "Significance": significance, "Confidence Interval": ci}
     results.append(result)
 
+out_text = os.path.join("/home/hoehn/data/t_test/sentinel", textfile)
+
 # Write results to a text file
-with open("ttest_results.txt", "w") as f:
+with open(out_text, "w") as f:
     f.write("Results of Corrected Paired Student's t-Tests for model {} and {}:\n".format(model1.split("/")[-1], model2.split("/")[-1]))
     for result in results:
         f.write("-----------\n")

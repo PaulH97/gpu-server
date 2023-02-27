@@ -272,14 +272,14 @@ def find_augFiles2(X_train, y_train, dir_augImg, dir_augMask, seed):
     temp_X = list(map(removeChars, X_train_aug))
     temp_y = list(map(removeChars, y_train_aug))
     
-    print("Does X_train and y_train have a equal size of files?:{}".format(temp_X==temp_y))
-    print("Does X_train and y_train have the same structure?:{}".format(len(temp_X)==len(temp_y)))
+    print("Does X_train and y_train have a equal size of files?:{}".format(len(temp_X)==len(temp_y)))
+    print("Does X_train and y_train have the same structure?:{}".format(temp_X==temp_y))
     
     temp_Xy = list(zip(X_train_aug, y_train_aug))
     random.seed(seed)
     random.shuffle(temp_Xy)
     X_train_aug, y_train_aug = zip(*temp_Xy) 
-
+    
     return X_train_aug, y_train_aug 
 
 def find_augFiles(X_train, y_train, dir_augImg, dir_augMask):

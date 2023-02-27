@@ -11,7 +11,7 @@ satellite:
     start_date: "2021-01-01T00:00:00Z"
     end_date: "2021-12-31T23:59:59Z"
     cloud_cover: 30
-  tiles_path: /home/hoehn/data/output/Sentinel-1/sentinel1_tiles.txt
+  tiles_path: /home/hoehn/data/output/Sentinel-12/sentinel12_tiles.txt
 
 shapefiles: 
   AOI: /home/hoehn/data/input/aoi_scenes.shp
@@ -29,9 +29,9 @@ model_parameter:
   epochs: 100
   kfold: 5
   val_metric: dice_metric
-  name: S1_128idx_kfold
+  name: S12_128noidx_kfold
   
 indizes: True
-output_folder: "/home/hoehn/data/output/Sentinel-1"
+output_folder: "/home/hoehn/data/output/Sentinel-2"
  
 seed: 42

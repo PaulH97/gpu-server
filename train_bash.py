@@ -15,17 +15,17 @@ import argparse
 gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=1-0.15)
 sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 
-# Definieren der Argumente
-parser = argparse.ArgumentParser()
-parser.add_argument('--run_number', type=int, required=True, help='Current run number')
-args = parser.parse_args()
+# # Definieren der Argumente
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--run_number', type=int, required=True, help='Current run number')
+# args = parser.parse_args()
 
-# Zugriff auf die Argumente
-run_number = args.run_number
+# # Zugriff auf die Argumente
+# run_number = args.run_number
 
-# Ausgabe der aktuellen Nummer
-model_ID = "model_" + str(run_number)
-
+# # Ausgabe der aktuellen Nummer
+# model_ID = "model_" + str(run_number)
+model_ID = "model_7"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # Read data from config file

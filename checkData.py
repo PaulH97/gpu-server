@@ -1,10 +1,10 @@
 import os
-from tools_preprocess import load_img_as_array
 import numpy as np
+from tools_model import load_img_as_array
 import rasterio
 
-dir_train_img = "/home/hoehn/data/output/Sentinel-12/crops256/idx/train/img_aug"
-dir_train_mask = "/home/hoehn/data/output/Sentinel-12/crops256/idx/train/mask_aug"
+dir_train_img = "/home/hoehn/data/output/Sentinel-12/crops256/idx/train/img"
+dir_train_mask = "/home/hoehn/data/output/Sentinel-12/crops256/idx/train/mask"
 
 img_count = len(os.listdir(dir_train_img))
 mask_count = len(os.listdir(dir_train_mask))
@@ -27,14 +27,14 @@ print("Found {} equal files in both dirs".format(len(equal)))
 print("Found {} missing files in both dirs".format(len(missing)))
 print(missing)
 #
-# dirpath_test_img = "/home/hoehn/data/output/Sentinel-12/crops256/no_idx/train/img"
-# dir_test_img = os.listdir(dirpath_test_img)
-# dir_test_img_new = "/home/hoehn/data/output/Sentinel-12/crops256/idx/train/img"
+# dirpath_train_img = "/home/hoehn/data/output/Sentinel-12/crops256/no_idx/test/img"
+# dir_train_img = os.listdir(dirpath_train_img)
+# dir_train_img_new = "/home/hoehn/data/output/Sentinel-12/crops256/idx/test/img"
 
-# dir_test_img.sort()
+# dir_train_img.sort()
 
-# for img in dir_test_img:
-#     img_path = os.path.join(dirpath_test_img, img)
+# for img in dir_train_img:
+#     img_path = os.path.join(dirpath_train_img, img)
 #     array = load_img_as_array(img_path) # (256,256,12) -> 'B11', 'B12', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'VH', 'VV'
    
 #     vv = array[:,:,11]
@@ -53,7 +53,7 @@ print(missing)
 
 #     array_new = np.dstack((array, cr, ndvi, ndwi))
         
-#     new_image_path= os.path.join(dir_test_img_new, img)
+#     new_image_path= os.path.join(dir_train_img_new, img)
                 
 #     new_img = rasterio.open(new_image_path,'w', driver='Gtiff',
 #                 width=array.shape[0], height=array.shape[1],

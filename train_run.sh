@@ -4,7 +4,10 @@
 for i in {1..8}
 do
   echo "Start with model ID: $i"
-  # Die aktuelle Nummer an das Python-Skript übergeben
-  python train_bash.py --run_number=$i
-  echo 
+  if [$i -eq 7]
+  then
+    # Die aktuelle Nummer an das Python-Skript übergeben
+    python train_bash.py --run_number=$i
+    echo 
+  fi
 done

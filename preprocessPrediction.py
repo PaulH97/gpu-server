@@ -51,7 +51,7 @@ else:
 
 # # ----------------------------- Normalization parameters -------------------------------------------
 print("Start with tile calculating normalization parameter for each band")
-norm_textfile = os.path.join(output_folder, "normParameter.txt")
+norm_textfile = os.path.join(output_folder, "normParameter32UPE.txt")
 
 if os.path.exists(norm_textfile):
     bands_scale = json.load(open(norm_textfile))
