@@ -23,6 +23,9 @@ class CustomImageGeneratorTest(Sequence):
             
         self.batch_size = batch_size
         self.indices = np.arange(len(self.x))
+        
+    def __len__(self):
+        return int(len(self.x)/self.batch_size)
    
     def __getitem__(self, idx):
 

@@ -1,3 +1,6 @@
+# this code block defines eight models with different input parameters and specifies the training parameters to use for all models
+# this is necessary for training the models from a bash script 
+# results in one big training run where you just start the program once 
 model_params:
   model_1:
     folder: "/home/hoehn/data/output/Sentinel-2"

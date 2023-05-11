@@ -58,7 +58,7 @@ for month in range(1,13):
         plt.plot(df_t["wavelength"], df_t[col_names[2]]/10000, marker=".",  label="Forest", color="darkgreen")
         plt.plot(df_t["wavelength"], df_t[col_names[3]]/10000, marker=".",  label="Sealed Surfaces", color="maroon")
         plt.plot(df_t["wavelength"], df_t[col_names[4]]/10000, marker=".",  label="Cropland", color="goldenrod")
-        plt.title("Spectral signatures of different landuse in {}".format(year[month]), fontsize = 12)
+        plt.title("Spectral Signatures of Different Landuse in {}".format(year[month]), fontsize = 12)
         plt.ylabel('Reflectance in %', fontsize = 10)
         plt.xlabel('Wavelength (µm)', fontsize = 10)
         plt.legend()

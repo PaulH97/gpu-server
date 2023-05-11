@@ -15,6 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 np.seterr(divide='ignore', invalid='ignore')
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 GDAL_DISABLE_READDIR_ON_OPEN=True
+
 # -------------------- Load data -------------------------------
 # Read data from config file
 if os.path.exists("config.yaml"):
@@ -36,10 +37,10 @@ if os.path.exists("config.yaml"):
         dir_name = output_folder.split("/")[-1]
         tiles_file = data["satellite"]["tiles_path"]
         
-        sen_tiles = [sentinel12_pred] # CHANGE HERE
+        sen_tiles = [sentinel2_pred] # CHANGE HERE
 
 # # -------------------- Build folder structure ------------------------
-crop_name = "prediction/32UPE/" + str(patch_size)
+crop_name = "prediction/32UQV/" + str(patch_size)
 crop_folder = os.path.join(output_folder, crop_name)
 
 if indizes:
@@ -51,7 +52,7 @@ else:
 
 # # ----------------------------- Normalization parameters -------------------------------------------
 print("Start with tile calculating normalization parameter for each band")
-norm_textfile = os.path.join(output_folder, "normParameter32UPE.txt")
+norm_textfile = os.path.join(output_folder, "normParameter32UQV.txt")
 
 if os.path.exists(norm_textfile):
     bands_scale = json.load(open(norm_textfile))
@@ -124,7 +125,7 @@ for idx1, tile in enumerate(sen_tiles):
     
     mask_name = os.path.basename(tile_name).split("_")[1]
     del bands_patches[mask_name]
-    savePatchesFullImg(bands_patches, p_full_out, tile_name) # save patches of entire sentiel 2 tile for prediction 
+    savePatchesFullImg(bands_patches, p_full_out, tile_name) # save patches of entire sentinel 2 tile for prediction 
 
     # Clear memory
     bands_patches = {}

@@ -15,20 +15,23 @@ from glob import glob
 
 np.seterr(divide='ignore', invalid='ignore')
 
-def getTileBandsRaster(tile_folder, model_id):
-    
+def getTileBandsRaster(tile_folder, model_id, idx_dir):
+        
     if model_id == "Sentinel-12":   
         # get tile name and path for each band
-        tile_name = '_'.join(tile_folder[0].split("_")[-2:])
-        sen_path =  glob(f"{tile_folder[0]}/*.tif") + glob(f"{tile_folder[1]}/*.tif")
+        tile_name = tile_folder[0].split("_")[-1]
+        sen_path =  glob(f"{tile_folder[0]}/*.tif") + glob(f"{tile_folder[1]}/*.tif") + glob(f"{idx_dir}/{tile_name}*.tif")
         sen_path.sort() # VH VV B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A 
     
     else:
         # get tile name and path for each band
         tile_folder = tile_folder.strip() # remove \n from file path
-        tile_name = '_'.join(tile_folder.split("_")[-2:])        
-        sen_path = glob(f"{tile_folder}/*.tif") 
-        sen_path.sort() # VH VV or B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A or 
+        tile_name = tile_folder.split("_")[-1] 
+        if model_id == "Sentinel-2":
+            sen_path = glob(f"{tile_folder}/*.tif") + [f"{idx_dir}/{tile_name}_ndvi.tif", f"{idx_dir}/{tile_name}_ndwi.tif"]
+        else:
+            sen_path = glob(f"{tile_folder}/*.tif") + [f"{idx_dir}/{tile_name}_cr.tif"]
+        sen_path.sort() # VH VV or B11 B12 B2 B3 B4 B5 B6 B7 B8 B8A 
         
     raster_muster = [i for i in sen_path if i.find("B2") > 0 or i.find("VH") > 0][-1]
 
@@ -74,7 +77,7 @@ def rasterizeShapefile(raster_path, vector_path, output_folder, tile_name, col_n
     transform = raster.transform
 
     #tile_name = '_'.join(tile_name.split("_")[-2:])
-    output_folder = os.path.join(output_folder, "masks")
+    #output_folder = os.path.join(output_folder, "masks")
     r_out = os.path.join(output_folder, os.path.basename(vector_path).split(".")[0] + "_" + tile_name +".tif")
 
     with rasterio.open(r_out, 'w+', driver='GTiff',
@@ -86,7 +89,7 @@ def rasterizeShapefile(raster_path, vector_path, output_folder, tile_name, col_n
     rst.close()
     return r_out
 
-def patchifyRasterAsArray(array, patch_size):
+def patchify_band(array, patch_size):
 
     patches = patchify(array, (patch_size, patch_size, 1), step=patch_size)    
     patchX = patches.shape[0]
@@ -116,7 +119,7 @@ def savePatchesPV(patches, img_out, mask_out, seed, raster_muster):
     band_names.sort()
     idx_noPV = []
     countPV = 0
-
+    
     r_muster = rasterio.open(raster_muster)
     r_transform = r_muster.transform
     r_crs = r_muster.crs
@@ -156,6 +159,7 @@ def savePatchesPV(patches, img_out, mask_out, seed, raster_muster):
 
             for band_nr, band_name in enumerate(band_names):
                 final.write(patches[band_name][idx][:,:,0],band_nr+1)
+                final.set_band_description(band_nr+1, band_name)
             final.close()
             countPV += 1
         else:
@@ -197,11 +201,12 @@ def savePatchesPV(patches, img_out, mask_out, seed, raster_muster):
 
             for band_nr, band_name in enumerate(band_names):
                 final.write(patches[band_name][idx][:,:,0],band_nr+1)
+                final.set_band_description(band_nr+1, band_name)
             final.close()
         
     return 
 
-def savePatchesFullImg(patches, output_folder, tile_name):
+def savePatchesFullImg(patches, output_folder):
     
     band_names = list(patches.keys())
     band_names.sort()
@@ -215,90 +220,112 @@ def savePatchesFullImg(patches, output_folder, tile_name):
 
         for band_nr, band_name in enumerate(band_names):
             final.write(patches[band_name][idx][:,:,0],band_nr+1)
+            final.set_band_description(band_nr+1, band_name)
         final.close()
 
     return 
 
-def calculateIndizesSen12(bands_patches):
+def calculate_indices(sen_paths, tile_id, bands_dict, out_dir, satellite_type):
+    red, nir, swir1, vv, vh = None, None, None, None, None
 
-    cr_list, ndvi_list, ndwi_list = [], [], []
-    cr_list_norm, ndvi_list_norm, ndwi_list_norm = [], [], []
+    if satellite_type in ["Sentinel-12", "Sentinel-2"]:
+        red = load_img_as_array([i for i in sen_paths if i.find("B4") > 0][0])
+        nir = load_img_as_array([i for i in sen_paths if i.find("B8") > 0][0])
+        swir1_ds = resampleRaster([i for i in sen_paths if i.find("B11") > 0][0], 10)
+        swir1 = swir1_ds.ReadAsArray()
+        swir1 = np.expand_dims(swir1, axis=0)
+        swir1 = np.moveaxis(swir1, 0, -1)
+        swir1 = np.nan_to_num(swir1)
 
-    for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
+    if satellite_type in ["Sentinel-12", "Sentinel-1"]:
+        vv = load_img_as_array([i for i in sen_paths if i.find("VV") > 0][0])
+        vh = load_img_as_array([i for i in sen_paths if i.find("VH") > 0][0])
 
-        vv = bands_patches['VV'][idx]
-        vh = bands_patches['VH'][idx]
-        nir = bands_patches['B8'][idx]
-        red = bands_patches['B4'][idx]
-        swir1 = bands_patches['B11'][idx]
+    if satellite_type == "Sentinel-12":
+        cr = np.nan_to_num(vh - vv)
+        bands_dict["CR"].append(cr)
+        tiff.imwrite(os.path.join(out_dir, f'{tile_id}_cr.tif'), cr)
+        print("Calculated CR")
 
-        cr = np.nan_to_num(vh/vv)
-        cr_list.append(cr)
-        ndvi = np.nan_to_num((nir-red)/(nir+red))
-        ndvi_list.append(ndvi) 
-        ndwi = np.nan_to_num((nir-swir1)/(nir+swir1))
-        ndwi_list.append(ndwi)
+    if satellite_type in ["Sentinel-12", "Sentinel-2"]:
+        ndvi = np.nan_to_num((nir - red) / (nir + red))
+        ndwi = np.nan_to_num((nir - swir1) / (nir + swir1))
+        bands_dict["NDVI"].append(ndvi)
+        bands_dict["NDWI"].append(ndwi)
+        tiff.imwrite(os.path.join(out_dir, f'{tile_id}_ndvi.tif'), ndvi)
+        tiff.imwrite(os.path.join(out_dir, f'{tile_id}_ndwi.tif'), ndwi)
+        print("Calculated NDVI")
+        print("Calculated NDWI")
 
-    [cr_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in cr_list] 
-    [ndvi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndvi_list]
-    [ndwi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndwi_list]    
+    return out_dir
 
-    bands_patches["CR"] = cr_list_norm
-    bands_patches["NDVI"] = ndvi_list_norm
-    bands_patches["NDWI"] = ndwi_list_norm
+def calculateIndizesSen12(sen_paths, tile_id, bands_dict, out_dir):
+        
+    vv = load_img_as_array([i for i in sen_paths if i.find("VV")> 0][0])
+    vh = load_img_as_array([i for i in sen_paths if i.find("VH")> 0][0])
+    red = load_img_as_array([i for i in sen_paths if i.find("B4")> 0][0])
+    nir = load_img_as_array([i for i in sen_paths if i.find("B8")> 0][0])
+    swir1_ds = resampleRaster([i for i in sen_paths if i.find("B11")> 0][0], 10)
+    swir1 = swir1_ds.ReadAsArray()
+    swir1 = np.expand_dims(swir1, axis=0)
+    swir1 = np.moveaxis(swir1, 0, -1)
+    swir1 = np.nan_to_num(swir1)
+        
+    cr = np.nan_to_num(vh-vv)
+    ndvi = np.nan_to_num((nir-red)/(nir+red))
+    ndwi = np.nan_to_num((nir-swir1)/(nir+swir1))
 
+    tiff.imwrite(os.path.join(out_dir, f'{tile_id}_cr.tif'), cr)
+    tiff.imwrite(os.path.join(out_dir, f'{tile_id}_ndvi.tif'), ndvi)
+    tiff.imwrite(os.path.join(out_dir, f'{tile_id}_ndwi.tif'), ndwi)
+
+    bands_dict["CR"].append(cr)
+    bands_dict["NDVI"].append(ndvi)
+    bands_dict["NDWI"].append(ndwi)
+    
     print("Calculated CR")
     print("Calculated NDVI")
     print("Calculated NDWI")
 
-    return bands_patches
+    return out_dir
 
-def calculateIndizesSen2(bands_patches):
+def calculateIndizesSen2(sen_paths, tile_id, bands_dict, out_dir):
+        
+    red = load_img_as_array([i for i in sen_paths if i.find("B4")> 0][0])
+    nir = load_img_as_array([i for i in sen_paths if i.find("B8")> 0][0])
+    swir1_ds = resampleRaster([i for i in sen_paths if i.find("B11")> 0][0], 10)
+    swir1 = swir1_ds.ReadAsArray()
+    swir1 = np.expand_dims(swir1, axis=0)
+    swir1 = np.moveaxis(swir1, 0, -1)
+    swir1 = np.nan_to_num(swir1)
+        
+    ndvi = np.nan_to_num((nir-red)/(nir+red))
+    ndwi = np.nan_to_num((nir-swir1)/(nir+swir1))
 
-    ndvi_list, ndwi_list = [], []
-    ndvi_list_norm, ndwi_list_norm = [], []
-
-    for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
-
-        nir = bands_patches['B8'][idx]
-        red = bands_patches['B4'][idx]
-        swir1 = bands_patches['B11'][idx]
-
-        ndvi = np.nan_to_num((nir-red)/(nir+red))
-        ndvi_list.append(ndvi) 
-        ndwi = np.nan_to_num((nir-swir1)/(nir+swir1))
-        ndwi_list.append(ndwi)
-
-    [ndvi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndvi_list]
-    [ndwi_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in ndwi_list]   
-
-    bands_patches["NDVI"] = ndvi_list_norm
-    bands_patches["NDWI"] = ndwi_list_norm
-
+    tiff.imwrite(os.path.join(out_dir, f'{tile_id}_ndvi.tif'), ndvi)
+    tiff.imwrite(os.path.join(out_dir, f'{tile_id}_ndwi.tif'), ndwi)
+    
+    bands_dict["NDVI"].append(ndvi)
+    bands_dict["NDWI"].append(ndwi)
+    
     print("Calculated NDVI")
     print("Calculated NDWI")
 
-    return bands_patches
+    return out_dir
 
-def calculateIndizesSen1(bands_patches):
-
-    cr_list = [] 
-    cr_list_norm = []
-
-    for idx in range(len(bands_patches[list(bands_patches.keys())[0]])):
-
-        vv = bands_patches['VV'][idx]
-        vh = bands_patches['VH'][idx]
-        cr = np.nan_to_num(vh/vv)
-        cr_list.append(cr)
-
-    [cr_list_norm.append((data-np.min(data))/(np.max(data)-np.min(data))) for data in cr_list] 
-  
-    bands_patches["CR"] = cr_list_norm
-
+def calculateIndizesSen1(sen_paths, tile_id, bands_dict, out_dir):
+    
+    vv = load_img_as_array([i for i in sen_paths if i.find("VV")> 0][0])
+    vh = load_img_as_array([i for i in sen_paths if i.find("VH")> 0][0])
+    cr = np.nan_to_num(vh-vv)
+    
+    tiff.imwrite(os.path.join(out_dir, f'{tile_id}_cr.tif'), cr)
+    
+    bands_dict["CR"].append(cr)
+    
     print("Calculated CR")
 
-    return bands_patches
+    return out_dir
 
 def imageAugmentation2(images_path, masks_path, seed):
 

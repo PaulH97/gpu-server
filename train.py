@@ -88,7 +88,7 @@ for i in range(X.shape[0]):
     plt.title("Example of training data sample for Sentinel-2", fontsize = 12)
     plt.subplot(121)
     plt.title("False-colour composite (BGR) of patch", fontsize = 12)
-    plt.imshow(X[i][:,:,2:5]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... # VH VV 
+    plt.imshow(X[i][:,:,:]) # 0:B11 1:B12 2:B2 3:B3 4:B4 ... # VH VV 
     plt.subplot(122)
     plt.title("Binary Mask of patch", fontsize = 12)
     plt.imshow(y[i])
